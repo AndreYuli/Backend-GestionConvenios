@@ -1,0 +1,25 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+// Define el enum 'EstadoConvenio'
+enum EstadoConvenio {
+  Borrador
+  Activo
+  Archivado
+}
+
+// Define el modelo 'Convenio'
+model Convenio {
+  id          Int            @id @default(autoincrement())
+  nombre      String
+  descripcion String
+  fecha_inicio DateTime
+  fecha_fin    DateTime
+  estado      EstadoConvenio @default(Borrador)
+}
