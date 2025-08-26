@@ -9,9 +9,18 @@
     "dev": "node --watch index.js",
     "build": "prisma generate",
     "db:migrate": "prisma migrate dev",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:verbose": "jest --verbose",
+    "test:model": "jest tests/convenio.model.working.test.js",
+    "test:database": "jest tests/database.working.test.js",
+    "test:simple": "jest tests/simple.test.js",
+    "test:all": "jest --testPathPatterns=\"working|simple\""
   },
   "devDependencies": {
+    "jest": "^30.0.5",
     "prisma": "^6.14.0"
   },
   "dependencies": {

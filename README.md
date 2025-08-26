@@ -1,135 +1,121 @@
-# Backend - Gestión de Convenios
+# Backend de Gestión de Convenios
 
-Backend desarrollado con Node.js, Express y Prisma para la gestión de convenios universitarios.
+Backend para gestión de convenios con Prisma y Express, incluyendo un sistema completo de testing.
 
 ## 🚀 Características
 
-- Base de datos PostgreSQL con Prisma ORM
-- Estructura modular y escalable
-- Validación de datos
-- Manejo de errores
+- **Modelo de datos** para convenios con estados
+- **Base de datos** PostgreSQL con Prisma ORM
+- **Sistema de testing** completo con Jest
+- **Validaciones** de datos y reglas de negocio
+- **Documentación** detallada de tests
 
-## 📋 Prerrequisitos
+## 📋 Modelo de Datos
 
-- Node.js (versión 18 o superior)
-- PostgreSQL
-- npm o yarn
+### Convenio
+- `id`: Identificador único (autoincremental)
+- `nombre`: Nombre del convenio (requerido)
+- `descripcion`: Descripción del convenio (requerido)
+- `fecha_inicio`: Fecha de inicio del convenio
+- `fecha_fin`: Fecha de finalización del convenio
+- `estado`: Estado del convenio (Borrador, Activo, Archivado)
 
 ## 🛠️ Instalación
 
-### 1. Clonar el repositorio
-
 ```bash
+# Clonar el repositorio
 git clone <url-del-repositorio>
 cd Backend-GestionConvenios
-```
 
-### 2. Instalar dependencias
-
-```bash
+# Instalar dependencias
 npm install
-```
 
-### 3. Configurar variables de entorno
+# Configurar variables de entorno
+cp .env.example .env
+# Editar .env con tus credenciales de base de datos
 
-Crea un archivo `.env` en la raíz del proyecto con la siguiente configuración:
-
-```env
-# Database Configuration
-DATABASE_URL="postgresql://username:password@localhost:5432/database_name"
-
-# Server Configuration
-PORT=3000
-```
-
-**Nota:** Reemplaza `username`, `password`, `localhost`, `5432` y `database_name` con tus credenciales de PostgreSQL.
-
-### 4. Configurar la base de datos
-
-#### Opción A: Crear base de datos manualmente
-```sql
-CREATE DATABASE database_name;
-```
-
-#### Opción B: Usar Prisma Migrate (recomendado)
-```bash
-# Generar el cliente de Prisma
+# Generar cliente de Prisma
 npm run build
 
 # Ejecutar migraciones
 npm run db:migrate
 ```
 
-### 5. Generar el cliente de Prisma
+## 🚀 Uso
 
-```bash
-npm run build
-```
-
-## 🚀 Ejecutar el proyecto
-
-### Modo desarrollo (con auto-reload)
+### Desarrollo
 ```bash
 npm run dev
 ```
 
-### Modo producción
+### Producción
 ```bash
 npm start
 ```
 
-El servidor estará disponible en `http://localhost:3000`
-
-## 📚 Scripts disponibles
-
-- `npm start` - Ejecuta la aplicación en modo producción
-- `npm run dev` - Ejecuta la aplicación en modo desarrollo con auto-reload
-- `npm run build` - Genera el cliente de Prisma
-- `npm run db:migrate` - Ejecuta las migraciones de la base de datos
-- `npm run db:studio` - Abre Prisma Studio para gestionar la base de datos
-
-## 🗄️ Estructura de la base de datos
-
-### Modelo Convenio
-- `id` - Identificador único (autoincremental)
-- `nombre` - Nombre del convenio
-- `descripcion` - Descripción detallada
-- `fecha_inicio` - Fecha de inicio del convenio
-- `fecha_fin` - Fecha de finalización del convenio
-- `estado` - Estado del convenio (Borrador, Activo, Archivado)
-
-
-
-## 🛠️ Desarrollo
-
-### Agregar nuevas dependencias
+### Base de Datos
 ```bash
-npm install nombre-del-paquete
-```
-
-### Agregar dependencias de desarrollo
-```bash
-npm install --save-dev nombre-del-paquete
-```
-
-### Actualizar el esquema de Prisma
-Después de modificar `prisma/schema.prisma`:
-```bash
+# Ejecutar migraciones
 npm run db:migrate
-npm run build
+
+# Abrir Prisma Studio
+npm run db:studio
 ```
 
-## 📝 Notas importantes
+## 🧪 Testing
 
-- **NUNCA** subas el archivo `.env` al repositorio
-- El directorio `generated/` se genera automáticamente y no debe subirse
-- Las migraciones de Prisma se almacenan en `prisma/migrations/`
-- Asegúrate de tener PostgreSQL ejecutándose antes de iniciar la aplicación
+El proyecto incluye un sistema completo de testing con Jest:
 
-## 🆘 Soporte
+### Ejecutar Tests
+```bash
+# Todos los tests que funcionan
+npm run test:all
 
-Si tienes problemas o preguntas:
-1. Revisa la documentación de [Prisma](https://www.prisma.io/docs/)
-2. Verifica que PostgreSQL esté ejecutándose
-3. Revisa los logs del servidor
-4. Abre un issue en el repositorio
+# Tests específicos
+npm run test:model      # Tests del modelo Convenio
+npm run test:database   # Tests de integración de BD
+npm run test:simple     # Tests básicos
+
+# Modos especiales
+npm run test:watch      # Modo watch
+npm run test:coverage   # Con cobertura de código
+npm run test:verbose    # Modo verbose
+```
+
+### Cobertura de Tests
+- ✅ **Modelo Convenio**: CRUD completo, validaciones, estados
+- ✅ **Base de Datos**: Conexión, transacciones, consultas complejas
+- ✅ **Reglas de Negocio**: Validaciones, estados, lógica de fechas
+
+### Estructura de Tests
+```
+tests/
+├── convenio.model.working.test.js     # Tests del modelo
+├── database.working.test.js            # Tests de base de datos
+├── simple.test.js                     # Tests básicos
+└── README.md                          # Documentación de tests
+```
+
+
+
+## 🔧 Configuración
+
+### Variables de Entorno
+```env
+DATABASE_URL="postgresql://usuario:password@localhost:5432/convenios"
+PORT=3000
+```
+
+### Base de Datos
+- **Tipo**: PostgreSQL
+- **ORM**: Prisma
+- **Migraciones**: Automáticas con `npm run db:migrate`
+
+## 📊 Estado del Proyecto
+
+- ✅ **Backend básico** implementado
+- ✅ **Modelo de datos** configurado
+- ✅ **Sistema de testing** completo
+- ✅ **Documentación** actualizada
+- ✅ **Validaciones básicas** implementadas
+- 🔄 **Reglas de negocio avanzadas** pendientes
