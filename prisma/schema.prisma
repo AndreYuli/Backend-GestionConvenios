@@ -1,0 +1,45 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum EstadoConvenio {
+  Borrador
+  Activo
+  Finalizado
+  Archivado
+}
+
+model Convenio {
+  id           Int              @id @default(autoincrement())
+  nombre       String
+  descripcion  String
+  fechaInicio  DateTime
+  fechaFin     DateTime
+  estado       EstadoConvenio   @default(Borrador)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  partes       ConvenioParte[]
+}
+
+model Parte {
+  id          Int              @id @default(autoincrement())
+  nombre      String           @unique
+  contacto    String?
+  tipo        String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  convenios   ConvenioParte[]
+}
+
+model ConvenioParte {
+  convenioId  Int
+  parteId     Int
+  convenio    Convenio @relation(fields: [convenioId], references: [id], onDelete: Cascade)
+  parte       Parte    @relation(fields: [parteId], references: [id], onDelete: Cascade)
+
+  @@id([convenioId, parteId])
+}
