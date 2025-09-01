@@ -1,31 +1,4 @@
 {
-<<<<<<< HEAD
-  "name": "convenios-backend",
-  "version": "1.0.0",
-  "main": "index.js",
-  "type": "module",
-  "scripts": {
-    "dev": "nodemon server.js",
-    "start": "node server.js",
-    "prisma:push": "prisma db push",
-    "prisma:studio": "prisma studio",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
-  "dependencies": {
-    "@prisma/client": "^6.14.0",
-    "cors": "^2.8.5",
-    "dotenv": "^17.2.1",
-    "express": "^5.1.0",
-    "zod": "^4.1.1"
-  },
-  "devDependencies": {
-    "nodemon": "^3.1.10",
-    "prisma": "^6.14.0"
-=======
   "name": "backend-gestion-convenios",
   "version": "1.0.0",
   "description": "Backend para gestión de convenios con Prisma y Express",
@@ -46,13 +19,19 @@
     "test:simple": "jest tests/simple.test.js",
     "test:all": "jest --testPathPatterns=\"working|simple\""
   },
-  "devDependencies": {
-    "jest": "^30.0.5",
-    "prisma": "^6.14.0"
-  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
   "dependencies": {
     "@prisma/client": "^6.14.0",
-    "express": "^4.18.2"
->>>>>>> b98c232ff060682576f4c26ee9c2de2c5e2d40ad
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
+    "zod": "^4.1.1"
+  },
+  "devDependencies": {
+    "jest": "^30.0.5",
+    "nodemon": "^3.1.10",
+    "prisma": "^6.14.0"
+    }
   }
-}
