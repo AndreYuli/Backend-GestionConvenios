@@ -1,4 +1,4 @@
-import { PrismaClient } from '../generated/prisma/index.js';
+import { PrismaClient } from '@prisma/client';
 
 // Configuración global para tests
 global.testPrisma = new PrismaClient({

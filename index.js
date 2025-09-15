@@ -1,4 +1,4 @@
-import { PrismaClient } from './generated/prisma/index.js';
+import { PrismaClient } from '@prisma/client';
 import express from 'express';
 
 // 1. Inicializa el cliente de Prisma
