@@ -1,9 +1,9 @@
 generator client {
   provider = "prisma-client-js"
-<<<<<<< HEAD
 }
+
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -43,28 +43,4 @@ model ConvenioParte {
   parte       Parte    @relation(fields: [parteId], references: [id], onDelete: Cascade)
 
   @@id([convenioId, parteId])
-=======
-  output   = "../generated/prisma"
-}
-
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-// Define el enum 'EstadoConvenio'
-enum EstadoConvenio {
-  Borrador
-  Activo
-  Archivado
-}
-
-// Define el modelo 'Convenio'
-model Convenio {
-  id          Int            @id @default(autoincrement())
-  nombre      String
-  descripcion String
-  fecha_inicio DateTime
-  fecha_fin    DateTime
-  estado      EstadoConvenio @default(Borrador)
->>>>>>> b98c232ff060682576f4c26ee9c2de2c5e2d40ad
 }
