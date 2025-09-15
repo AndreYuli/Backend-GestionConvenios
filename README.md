@@ -102,7 +102,7 @@ tests/
 
 ### Variables de Entorno
 ```env
-DATABASE_URL="postgresql://usuario:password@localhost:5432/convenios"
+DATABASE_URL="postgresql://usuario:password@localhost:5432/gestion_de_convenios"
 PORT=3000
 ```
 
