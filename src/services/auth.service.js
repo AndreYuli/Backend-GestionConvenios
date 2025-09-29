@@ -8,6 +8,7 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
+import PasswordValidationService from './password-validation.service.js';
 
 const prisma = new PrismaClient();
 
@@ -26,6 +27,15 @@ class AuthStrategy {
  * Complejidad total: O(log n) para búsqueda + O(1) para verificación de hash
  */
 class EmailPasswordStrategy extends AuthStrategy {
+  constructor() {
+    super();
+    // Inicializar servicio avanzado de validación de contraseñas
+    this.passwordValidator = new PasswordValidationService({
+      saltRounds: 12,
+      minTimeMs: 100 // Protección contra timing attacks
+    });
+  }
+
   async authenticate({ email, password }) {
     try {
       // Búsqueda optimizada O(log n) gracias al índice único en email
@@ -57,10 +67,18 @@ class EmailPasswordStrategy extends AuthStrategy {
         };
       }
 
-      // Verificación de contraseña: O(1) amortizado con bcrypt
-      const isValidPassword = await bcrypt.compare(password, user.password);
+      // Verificación avanzada de contraseña: O(2^saltRounds) con protecciones de seguridad
+      const validationResult = await this.passwordValidator.verifyPassword(password, user.password);
 
-      if (!isValidPassword) {
+      if (!validationResult.success) {
+        return {
+          success: false,
+          error: 'VALIDATION_ERROR',
+          message: 'Error en la validación de contraseña'
+        };
+      }
+
+      if (!validationResult.isValid) {
         return {
           success: false,
           error: 'INVALID_CREDENTIALS',
