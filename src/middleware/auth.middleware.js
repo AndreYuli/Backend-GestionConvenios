@@ -307,7 +307,8 @@ export {
   AuthMiddlewareFactory,
   loginRateLimit,
   validateActiveUser,
-  baseAuthMiddleware
+  baseAuthMiddleware,
+  baseAuthMiddleware as authMiddleware
 };
 
 export default AuthMiddlewareFactory;

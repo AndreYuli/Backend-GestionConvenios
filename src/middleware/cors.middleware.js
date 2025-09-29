@@ -41,8 +41,15 @@ export const createCorsConfig = () => {
       // Remover duplicados
       allowedOrigins = [...new Set(allowedOrigins)];
 
-      // En desarrollo, permitir requests sin origin (Postman, pruebas locales)
+      // En desarrollo, permitir requests sin origin (Postman, pruebas locales, archivos file://)
       if (isDevelopment && !origin) {
+        console.log('🌐 CORS: Permitiendo request sin origin (desarrollo)');
+        return callback(null, true);
+      }
+
+      // En desarrollo, también permitir orígenes file:// y null
+      if (isDevelopment && (origin === null || origin === 'null' || origin?.startsWith('file://'))) {
+        console.log('🌐 CORS: Permitiendo archivo local o origin null (desarrollo)');
         return callback(null, true);
       }
 

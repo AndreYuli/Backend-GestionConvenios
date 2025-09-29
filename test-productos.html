@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Productos API - Sistema de Gestión de Convenios</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 20px; 
+            background: #f8f9fa;
+        }
+        .container { 
+            max-width: 1000px; 
+            margin: 0 auto; 
+            background: white; 
+            border-radius: 10px; 
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .section { 
+            margin: 25px 0; 
+            padding: 20px; 
+            border: 2px solid #e9ecef; 
+            border-radius: 8px; 
+            background: #f8f9fa;
+        }
+        .section h2 {
+            color: #495057;
+            margin-top: 0;
+            border-bottom: 2px solid #dee2e6;
+            padding-bottom: 10px;
+        }
+        button { 
+            background: linear-gradient(135deg, #007cba, #005a87);
+            color: white; 
+            border: none; 
+            padding: 12px 20px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            margin: 8px 5px; 
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        button:hover { 
+            background: linear-gradient(135deg, #005a87, #004066);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,124,186,0.3);
+        }
+        .response { 
+            background: #ffffff; 
+            padding: 15px; 
+            margin: 15px 0; 
+            border-radius: 6px; 
+            white-space: pre-wrap; 
+            border: 1px solid #dee2e6;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        input, select, textarea { 
+            padding: 10px; 
+            margin: 8px 5px; 
+            border: 2px solid #ced4da; 
+            border-radius: 5px; 
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+        input:focus, select:focus, textarea:focus {
+            border-color: #007cba;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0,124,186,0.1);
+        }
+        textarea {
+            width: 100%;
+            max-width: 500px;
+            height: 80px;
+            resize: vertical;
+        }
+        .success { 
+            background: linear-gradient(135deg, #d4edda, #c3e6cb); 
+            border: 2px solid #c3e6cb; 
+            color: #155724; 
+        }
+        .error { 
+            background: linear-gradient(135deg, #f8d7da, #f5c6cb); 
+            border: 2px solid #f5c6cb; 
+            color: #721c24; 
+        }
+        .info {
+            background: linear-gradient(135deg, #d1ecf1, #bee5eb);
+            border: 2px solid #bee5eb;
+            color: #0c5460;
+        }
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            margin: 10px 0;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            min-width: 200px;
+        }
+        .form-group label {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 5px;
+        }
+        .token-display {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #6f42c1, #5a32a3);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-card h3 {
+            margin: 0 0 10px 0;
+            font-size: 24px;
+        }
+        .stat-card p {
+            margin: 0;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏭 Sistema de Gestión de Productos - Test API</h1>
+        <p>Sistema para registrar productos resultantes de actividades de convenios (artículos, software, patentes, informes, etc.)</p>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <h3 id="productosCount">0</h3>
+                <p>Productos Registrados</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="tiposCount">8</h3>
+                <p>Tipos Disponibles</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="actividadesCount">-</h3>
+                <p>Actividad Actual</p>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🔑 1. Autenticación</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Email:</label>
+                    <input type="email" id="email" placeholder="admin@universidad.edu.co" value="admin@universidad.edu.co">
+                </div>
+                <div class="form-group">
+                    <label>Contraseña:</label>
+                    <input type="password" id="password" placeholder="Admin123!" value="Admin123!">
+                </div>
+                <button onclick="login()">🔑 Iniciar Sesión</button>
+            </div>
+            <div id="tokenDisplay" class="token-display" style="display: none;"></div>
+            <div id="loginResponse" class="response"></div>
+        </div>
+
+        <div class="section">
+            <h2>📋 2. Tipos de Producto Disponibles</h2>
+            <button onclick="getTiposProducto()">📋 Obtener Tipos</button>
+            <div id="tiposResponse" class="response"></div>
+        </div>
+
+        <div class="section">
+            <h2>➕ 3. Registrar Nuevo Producto</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>ID Actividad:</label>
+                    <input type="number" id="actividadId" placeholder="1" value="1">
+                </div>
+                <div class="form-group">
+                    <label>Nombre del Producto:</label>
+                    <input type="text" id="nombreProducto" placeholder="Artículo de Investigación" value="Sistema de Gestión Universitaria">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Tipo de Producto:</label>
+                    <select id="tipoProducto">
+                        <option value="Articulo">📄 Artículo</option>
+                        <option value="Software">💻 Software</option>
+                        <option value="Patente">⚖️ Patente</option>
+                        <option value="Informe">📊 Informe</option>
+                        <option value="Manual">📖 Manual</option>
+                        <option value="Prototipo">🔧 Prototipo</option>
+                        <option value="Dataset">📊 Dataset</option>
+                        <option value="Otro">🔹 Otro</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Enlace (opcional):</label>
+                    <input type="url" id="enlaceProducto" placeholder="https://github.com/proyecto" value="https://github.com/universidad/gestion-convenios">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group" style="flex: 1;">
+                    <label>Descripción:</label>
+                    <textarea id="descripcionProducto" placeholder="Descripción detallada del producto...">Sistema web desarrollado para gestionar convenios universitarios, incluyendo módulos de actividades, participantes y seguimiento de productos resultantes.</textarea>
+                </div>
+            </div>
+            <button onclick="addProducto()">➕ Registrar Producto</button>
+            <div id="addResponse" class="response"></div>
+        </div>
+
+        <div class="section">
+            <h2>📄 4. Listar Productos de Actividad</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>ID Actividad:</label>
+                    <input type="number" id="listActivityId" placeholder="1" value="1">
+                </div>
+                <button onclick="getProductos()">📄 Listar Productos</button>
+                <button onclick="getProductosPorTipo()">🔍 Filtrar por Tipo</button>
+            </div>
+            <div id="listResponse" class="response"></div>
+        </div>
+
+        <div class="section">
+            <h2>✏️ 5. Actualizar Producto</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>ID Actividad:</label>
+                    <input type="number" id="updateActivityId" placeholder="1" value="1">
+                </div>
+                <div class="form-group">
+                    <label>ID Producto:</label>
+                    <input type="number" id="updateProductoId" placeholder="1" value="1">
+                </div>
+                <div class="form-group">
+                    <label>Nuevo Nombre:</label>
+                    <input type="text" id="updateNombre" placeholder="Nombre actualizado">
+                </div>
+            </div>
+            <button onclick="updateProducto()">✏️ Actualizar</button>
+            <div id="updateResponse" class="response"></div>
+        </div>
+
+        <div class="section">
+            <h2>🗑️ 6. Eliminar Producto</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>ID Actividad:</label>
+                    <input type="number" id="deleteActivityId" placeholder="1" value="1">
+                </div>
+                <div class="form-group">
+                    <label>ID Producto:</label>
+                    <input type="number" id="deleteProductoId" placeholder="1" value="1">
+                </div>
+                <button onclick="deleteProducto()" style="background: linear-gradient(135deg, #dc3545, #c82333);">🗑️ Eliminar</button>
+            </div>
+            <div id="deleteResponse" class="response"></div>
+        </div>
+    </div>
+
+    <script>
+        let authToken = '';
+        const API_BASE = 'http://localhost:3000/api';
+
+        async function makeRequest(url, options = {}) {
+            try {
+                const response = await fetch(url, {
+                    ...options,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(authToken && { 'Authorization': `Bearer ${authToken}` }),
+                        ...options.headers
+                    }
+                });
+                
+                const data = await response.json();
+                return { response, data };
+            } catch (error) {
+                return { error: error.message };
+            }
+        }
+
+        function showResponse(elementId, data, isSuccess = true) {
+            const responseDiv = document.getElementById(elementId);
+            responseDiv.innerHTML = JSON.stringify(data, null, 2);
+            responseDiv.className = `response ${isSuccess ? 'success' : 'error'}`;
+        }
+
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            const { response, data, error } = await makeRequest(`${API_BASE}/auth/login`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    correoElectronico: email,
+                    password: password
+                })
+            });
+
+            if (error) {
+                showResponse('loginResponse', { error }, false);
+                return;
+            }
+
+            if (response.ok) {
+                authToken = data.data.token;
+                document.getElementById('tokenDisplay').style.display = 'block';
+                document.getElementById('tokenDisplay').innerHTML = `Token: ${authToken.substring(0, 50)}...`;
+                showResponse('loginResponse', {
+                    message: 'Login exitoso',
+                    user: data.data.user.correoElectronico,
+                    rol: data.data.user.rol
+                });
+            } else {
+                showResponse('loginResponse', data, false);
+            }
+        }
+
+        async function getTiposProducto() {
+            const { response, data, error } = await makeRequest(`${API_BASE}/tipos-producto`);
+            
+            if (error) {
+                showResponse('tiposResponse', { error }, false);
+                return;
+            }
+
+            if (response.ok) {
+                showResponse('tiposResponse', data);
+                document.getElementById('tiposCount').textContent = data.data.length;
+            } else {
+                showResponse('tiposResponse', data, false);
+            }
+        }
+
+        async function addProducto() {
+            const actividadId = document.getElementById('actividadId').value;
+            const nombre = document.getElementById('nombreProducto').value;
+            const tipo = document.getElementById('tipoProducto').value;
+            const descripcion = document.getElementById('descripcionProducto').value;
+            const enlace = document.getElementById('enlaceProducto').value;
+
+            const { response, data, error } = await makeRequest(`${API_BASE}/actividades/${actividadId}/productos`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    nombre,
+                    tipo,
+                    descripcion,
+                    enlace: enlace || null
+                })
+            });
+
+            if (error) {
+                showResponse('addResponse', { error }, false);
+                return;
+            }
+
+            if (response.ok) {
+                showResponse('addResponse', data);
+                document.getElementById('actividadesCount').textContent = actividadId;
+                // Limpiar formulario
+                document.getElementById('nombreProducto').value = '';
+                document.getElementById('descripcionProducto').value = '';
+                document.getElementById('enlaceProducto').value = '';
+            } else {
+                showResponse('addResponse', data, false);
+            }
+        }
+
+        async function getProductos() {
+            const actividadId = document.getElementById('listActivityId').value;
+
+            const { response, data, error } = await makeRequest(`${API_BASE}/actividades/${actividadId}/productos`);
+
+            if (error) {
+                showResponse('listResponse', { error }, false);
+                return;
+            }
+
+            if (response.ok) {
+                showResponse('listResponse', data);
+                document.getElementById('productosCount').textContent = data.meta.total;
+            } else {
+                showResponse('listResponse', data, false);
+            }
+        }
+
+        async function getProductosPorTipo() {
+            const actividadId = document.getElementById('listActivityId').value;
+            const { response, data, error } = await makeRequest(`${API_BASE}/actividades/${actividadId}/productos`);
+
+            if (error || !response.ok) {
+                showResponse('listResponse', { error: error || data }, false);
+                return;
+            }
+
+            // Agrupar por tipo
+            const productosAgrupados = data.data.reduce((acc, producto) => {
+                if (!acc[producto.tipo]) acc[producto.tipo] = [];
+                acc[producto.tipo].push(producto);
+                return acc;
+            }, {});
+
+            showResponse('listResponse', {
+                ...data,
+                productosPorTipo: productosAgrupados
+            });
+        }
+
+        async function updateProducto() {
+            const actividadId = document.getElementById('updateActivityId').value;
+            const productoId = document.getElementById('updateProductoId').value;
+            const nombre = document.getElementById('updateNombre').value;
+
+            if (!nombre) {
+                showResponse('updateResponse', { error: 'Debe proporcionar un nuevo nombre' }, false);
+                return;
+            }
+
+            const { response, data, error } = await makeRequest(`${API_BASE}/actividades/${actividadId}/productos/${productoId}`, {
+                method: 'PUT',
+                body: JSON.stringify({ nombre })
+            });
+
+            if (error) {
+                showResponse('updateResponse', { error }, false);
+                return;
+            }
+
+            if (response.ok) {
+                showResponse('updateResponse', data);
+                document.getElementById('updateNombre').value = '';
+            } else {
+                showResponse('updateResponse', data, false);
+            }
+        }
+
+        async function deleteProducto() {
+            const actividadId = document.getElementById('deleteActivityId').value;
+            const productoId = document.getElementById('deleteProductoId').value;
+
+            if (!confirm('¿Está seguro de que desea eliminar este producto?')) {
+                return;
+            }
+
+            const { response, data, error } = await makeRequest(`${API_BASE}/actividades/${actividadId}/productos/${productoId}`, {
+                method: 'DELETE'
+            });
+
+            if (error) {
+                showResponse('deleteResponse', { error }, false);
+                return;
+            }
+
+            if (response.ok) {
+                showResponse('deleteResponse', data);
+            } else {
+                showResponse('deleteResponse', data, false);
+            }
+        }
+
+        // Auto-cargar tipos al cargar la página
+        window.onload = () => {
+            getTiposProducto();
+        };
+    </script>
+</body>
+</html>

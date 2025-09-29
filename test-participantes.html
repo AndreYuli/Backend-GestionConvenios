@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Participantes API</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        button { background: #007cba; color: white; border: none; padding: 10px 15px; border-radius: 3px; cursor: pointer; margin: 5px; }
+        button:hover { background: #005a87; }
+        .response { background: #f5f5f5; padding: 10px; margin: 10px 0; border-radius: 3px; white-space: pre-wrap; }
+        input, select { padding: 8px; margin: 5px; border: 1px solid #ddd; border-radius: 3px; }
+        .success { background: #d4edda; border-color: #c3e6cb; color: #155724; }
+        .error { background: #f8d7da; border-color: #f5c6cb; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎓 Test Sistema de Participantes</h1>
+        
+        <div class="section">
+            <h2>1. Autenticación</h2>
+            <input type="email" id="email" placeholder="admin@universidad.edu.co" value="admin@universidad.edu.co">
+            <input type="password" id="password" placeholder="Admin123!" value="Admin123!">
+            <button onclick="login()">🔑 Login</button>
+            <div id="loginResponse" class="response"></div>
+        </div>
+
+        <div class="section">
+            <h2>2. Roles Disponibles</h2>
+            <button onclick="getRoles()">📋 Obtener Roles</button>
+            <div id="rolesResponse" class="response"></div>
+        </div>
+
+        <div class="section">
+            <h2>3. Agregar Participante</h2>
+            <input type="number" id="actividadId" placeholder="ID Actividad" value="1">
+            <input type="text" id="nombreCompleto" placeholder="Juan Pérez García" value="Juan Pérez García">
+            <input type="email" id="correoElectronico" placeholder="juan.perez@universidad.edu.co" value="juan.perez@universidad.edu.co">
+            <select id="rol">
+                <option value="Estudiante">Estudiante</option>
+                <option value="Docente">Docente</option>
+                <option value="Docente Investigador">Docente Investigador</option>
+                <option value="Investigador">Investigador</option>
+                <option value="Coordinador">Coordinador</option>
+                <option value="Externo">Externo</option>
+                <option value="Colaborador">Colaborador</option>
+            </select>
+            <button onclick="addParticipante()">➕ Agregar Participante</button>
+            <div id="addResponse" class="response"></div>
+        </div>
+
+        <div class="section">
+            <h2>4. Listar Participantes</h2>
+            <input type="number" id="listActivityId" placeholder="ID Actividad" value="1">
+            <button onclick="getParticipantes()">📄 Listar Participantes</button>
+            <div id="listResponse" class="response"></div>
+        </div>
+    </div>
+
+    <script>
+        let authToken = '';
+        const API_BASE = 'http://localhost:3000/api';
+
+        async function makeRequest(url, options = {}) {
+            try {
+                const response = await fetch(url, {
+                    ...options,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(authToken && { 'Authorization': `Bearer ${authToken}` }),
+                        ...options.headers
+                    }
+                });
+                
+                const data = await response.json();
+                return { response, data };
+            } catch (error) {
+                return { error: error.message };
+            }
+        }
+
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            const { response, data, error } = await makeRequest(`${API_BASE}/auth/login`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    correoElectronico: email,
+                    password: password
+                })
+            });
+
+            const responseDiv = document.getElementById('loginResponse');
+            
+            if (error) {
+                responseDiv.innerHTML = `❌ Error: ${error}`;
+                responseDiv.className = 'response error';
+                return;
+            }
+
+            if (response.ok) {
+                authToken = data.data.token;
+                responseDiv.innerHTML = `✅ Login exitoso!\nToken: ${authToken.substring(0, 50)}...\nUsuario: ${data.data.user.correoElectronico}\nRol: ${data.data.user.rol}`;
+                responseDiv.className = 'response success';
+            } else {
+                responseDiv.innerHTML = `❌ Error en login: ${JSON.stringify(data, null, 2)}`;
+                responseDiv.className = 'response error';
+            }
+        }
+
+        async function getRoles() {
+            const { response, data, error } = await makeRequest(`${API_BASE}/roles-participantes`);
+            
+            const responseDiv = document.getElementById('rolesResponse');
+            
+            if (error) {
+                responseDiv.innerHTML = `❌ Error: ${error}`;
+                responseDiv.className = 'response error';
+                return;
+            }
+
+            if (response.ok) {
+                responseDiv.innerHTML = `✅ Roles disponibles:\n${JSON.stringify(data, null, 2)}`;
+                responseDiv.className = 'response success';
+            } else {
+                responseDiv.innerHTML = `❌ Error: ${JSON.stringify(data, null, 2)}`;
+                responseDiv.className = 'response error';
+            }
+        }
+
+        async function addParticipante() {
+            const actividadId = document.getElementById('actividadId').value;
+            const nombreCompleto = document.getElementById('nombreCompleto').value;
+            const correoElectronico = document.getElementById('correoElectronico').value;
+            const rol = document.getElementById('rol').value;
+
+            const { response, data, error } = await makeRequest(`${API_BASE}/actividades/${actividadId}/participantes`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    nombreCompleto,
+                    correoElectronico,
+                    rol
+                })
+            });
+
+            const responseDiv = document.getElementById('addResponse');
+            
+            if (error) {
+                responseDiv.innerHTML = `❌ Error: ${error}`;
+                responseDiv.className = 'response error';
+                return;
+            }
+
+            if (response.ok) {
+                responseDiv.innerHTML = `✅ Participante agregado exitosamente!\n${JSON.stringify(data, null, 2)}`;
+                responseDiv.className = 'response success';
+            } else {
+                responseDiv.innerHTML = `❌ Error: ${JSON.stringify(data, null, 2)}`;
+                responseDiv.className = 'response error';
+            }
+        }
+
+        async function getParticipantes() {
+            const actividadId = document.getElementById('listActivityId').value;
+
+            const { response, data, error } = await makeRequest(`${API_BASE}/actividades/${actividadId}/participantes`);
+
+            const responseDiv = document.getElementById('listResponse');
+            
+            if (error) {
+                responseDiv.innerHTML = `❌ Error: ${error}`;
+                responseDiv.className = 'response error';
+                return;
+            }
+
+            if (response.ok) {
+                responseDiv.innerHTML = `✅ Participantes de la actividad:\n${JSON.stringify(data, null, 2)}`;
+                responseDiv.className = 'response success';
+            } else {
+                responseDiv.innerHTML = `❌ Error: ${JSON.stringify(data, null, 2)}`;
+                responseDiv.className = 'response error';
+            }
+        }
+    </script>
+</body>
+</html>

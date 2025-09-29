@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard Ejecutivo - Sistema de Gestión de Convenios</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .dashboard-container { 
+            max-width: 1400px; 
+            margin: 0 auto; 
+            padding: 20px;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .header .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 1.1em;
+            margin-bottom: 20px;
+        }
+
+        .user-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 2px solid #ecf0f1;
+        }
+
+        .login-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .login-form {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .widget {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .widget:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+        }
+
+        .widget::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #3498db, #2ecc71);
+        }
+
+        .widget.warning::before {
+            background: linear-gradient(90deg, #f39c12, #e74c3c);
+        }
+
+        .widget.success::before {
+            background: linear-gradient(90deg, #2ecc71, #27ae60);
+        }
+
+        .widget.info::before {
+            background: linear-gradient(90deg, #3498db, #2980b9);
+        }
+
+        .widget-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .widget-icon {
+            font-size: 2.5em;
+            opacity: 0.8;
+        }
+
+        .widget-value {
+            font-size: 3em;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 15px 0;
+        }
+
+        .widget-label {
+            color: #7f8c8d;
+            font-size: 1.1em;
+            font-weight: 500;
+        }
+
+        .widget-trend {
+            margin-top: 10px;
+            font-size: 0.9em;
+            padding: 5px 10px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+
+        .trend-up {
+            background: rgba(46, 204, 113, 0.1);
+            color: #27ae60;
+        }
+
+        .trend-down {
+            background: rgba(231, 76, 60, 0.1);
+            color: #e74c3c;
+        }
+
+        .trend-stable {
+            background: rgba(52, 152, 219, 0.1);
+            color: #3498db;
+        }
+
+        .detailed-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+
+        .section-title {
+            font-size: 1.5em;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+
+        .convenios-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .convenio-item {
+            padding: 15px;
+            border: 1px solid #ecf0f1;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .convenio-item:hover {
+            background: #f8f9fa;
+            border-color: #3498db;
+        }
+
+        .convenio-item.urgencia-alta {
+            border-left: 4px solid #e74c3c;
+            background: rgba(231, 76, 60, 0.05);
+        }
+
+        .convenio-item.urgencia-media {
+            border-left: 4px solid #f39c12;
+            background: rgba(243, 156, 18, 0.05);
+        }
+
+        .convenio-item.urgencia-baja {
+            border-left: 4px solid #27ae60;
+            background: rgba(39, 174, 96, 0.05);
+        }
+
+        .convenio-titulo {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .convenio-info {
+            font-size: 0.9em;
+            color: #7f8c8d;
+        }
+
+        .days-remaining {
+            font-weight: bold;
+            padding: 2px 8px;
+            border-radius: 12px;
+            color: white;
+            font-size: 0.8em;
+        }
+
+        .days-remaining.alta {
+            background: #e74c3c;
+        }
+
+        .days-remaining.media {
+            background: #f39c12;
+        }
+
+        .days-remaining.baja {
+            background: #27ae60;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        button { 
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white; 
+            border: none; 
+            padding: 12px 20px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+        }
+
+        button:hover { 
+            background: linear-gradient(135deg, #2980b9, #21618c);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+        }
+
+        button.refresh {
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3);
+        }
+
+        button.refresh:hover {
+            background: linear-gradient(135deg, #27ae60, #229954);
+            box-shadow: 0 6px 20px rgba(46, 204, 113, 0.4);
+        }
+
+        input { 
+            padding: 10px 15px; 
+            border: 2px solid #ecf0f1; 
+            border-radius: 8px; 
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus {
+            border-color: #3498db;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .response { 
+            background: #f8f9fa; 
+            padding: 15px; 
+            margin: 15px 0; 
+            border-radius: 8px; 
+            white-space: pre-wrap; 
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+        }
+
+        .success { 
+            background: linear-gradient(135deg, #d4edda, #c3e6cb); 
+            border-color: #c3e6cb; 
+            color: #155724; 
+        }
+
+        .error { 
+            background: linear-gradient(135deg, #f8d7da, #f5c6cb); 
+            border-color: #f5c6cb; 
+            color: #721c24; 
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #7f8c8d;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .alert-banner {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: bold;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.8; }
+            100% { opacity: 1; }
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #dee2e6;
+        }
+
+        .stat-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-container {
+                padding: 10px;
+            }
+            
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .login-form {
+                flex-direction: column;
+            }
+            
+            .controls {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="header">
+            <h1>📊 Dashboard Ejecutivo</h1>
+            <p class="subtitle">Panel de Control para Decanos y Administradores</p>
+            <div class="user-info">
+                <div id="userInfo" style="display: none;">
+                    <strong>👤 Usuario:</strong> <span id="userEmail"></span> | 
+                    <strong>🎭 Rol:</strong> <span id="userRole"></span>
+                </div>
+                <div id="lastUpdate" style="color: #7f8c8d;"></div>
+            </div>
+        </div>
+
+        <div id="loginSection" class="login-section">
+            <h2>🔐 Autenticación Requerida</h2>
+            <p>Este dashboard está restringido a roles <strong>Decano</strong> y <strong>Administrador</strong></p>
+            <div class="login-form">
+                <input type="email" id="email" placeholder="admin@universidad.edu.co" value="admin@universidad.edu.co">
+                <input type="password" id="password" placeholder="Admin123!" value="Admin123!">
+                <button onclick="login()">🔑 Iniciar Sesión</button>
+            </div>
+            <div id="loginResponse" class="response"></div>
+        </div>
+
+        <div id="dashboardContent" style="display: none;">
+            <div id="alertBanner" style="display: none;" class="alert-banner"></div>
+
+            <div class="controls">
+                <button onclick="loadDashboard()" class="refresh">🔄 Actualizar Dashboard</button>
+                <button onclick="loadConveniosVencimiento()">⚠️ Ver Convenios por Vencer</button>
+                <button onclick="loadEstadisticas()">📊 Ver Estadísticas Completas</button>
+                <input type="number" id="diasVencimiento" placeholder="Días" value="90" min="1" max="365">
+                <span style="color: #7f8c8d;">días para considerar "próximo a vencer"</span>
+            </div>
+
+            <div id="metricsGrid" class="dashboard-grid">
+                <!-- Widgets dinámicos aquí -->
+            </div>
+
+            <div class="detailed-section">
+                <h3 class="section-title">📋 Convenios Próximos a Vencer</h3>
+                <div id="conveniosVencimiento" class="convenios-list loading">
+                    <div class="spinner"></div>
+                    <p>Cargando convenios próximos a vencer...</p>
+                </div>
+            </div>
+
+            <div class="detailed-section">
+                <h3 class="section-title">📈 Estadísticas Detalladas</h3>
+                <div id="estadisticasDetalle" class="loading">
+                    <div class="spinner"></div>
+                    <p>Cargando estadísticas...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let authToken = '';
+        const API_BASE = 'http://localhost:3000/api';
+
+        async function makeRequest(url, options = {}) {
+            try {
+                const response = await fetch(url, {
+                    ...options,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(authToken && { 'Authorization': `Bearer ${authToken}` }),
+                        ...options.headers
+                    }
+                });
+                
+                const data = await response.json();
+                return { response, data };
+            } catch (error) {
+                return { error: error.message };
+            }
+        }
+
+        function showResponse(elementId, data, isSuccess = true) {
+            const responseDiv = document.getElementById(elementId);
+            if (responseDiv) {
+                responseDiv.innerHTML = JSON.stringify(data, null, 2);
+                responseDiv.className = `response ${isSuccess ? 'success' : 'error'}`;
+            }
+        }
+
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            const { response, data, error } = await makeRequest(`${API_BASE}/auth/login`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    correoElectronico: email,
+                    password: password
+                })
+            });
+
+            if (error) {
+                showResponse('loginResponse', { error }, false);
+                return;
+            }
+
+            if (response.ok) {
+                authToken = data.data.token;
+                
+                // Verificar permisos
+                if (!['ADMIN', 'GESTOR'].includes(data.data.user.rol)) {
+                    showResponse('loginResponse', {
+                        error: 'Acceso denegado - Se requiere rol Decano o Administrador',
+                        userRole: data.data.user.rol
+                    }, false);
+                    return;
+                }
+
+                // Mostrar dashboard
+                document.getElementById('loginSection').style.display = 'none';
+                document.getElementById('dashboardContent').style.display = 'block';
+                
+                // Actualizar información del usuario
+                document.getElementById('userInfo').style.display = 'block';
+                document.getElementById('userEmail').textContent = data.data.user.correoElectronico;
+                document.getElementById('userRole').textContent = data.data.user.rol;
+
+                // Cargar dashboard
+                loadDashboard();
+            } else {
+                showResponse('loginResponse', data, false);
+            }
+        }
+
+        async function loadDashboard() {
+            try {
+                document.getElementById('lastUpdate').textContent = '🔄 Actualizando...';
+                
+                const { response, data, error } = await makeRequest(`${API_BASE}/dashboard/resumen-ejecutivo`);
+
+                if (error || !response.ok) {
+                    console.error('Error al cargar dashboard:', error || data);
+                    return;
+                }
+
+                // Actualizar widgets
+                updateWidgets(data.data.widgets);
+                
+                // Mostrar alertas si hay convenios próximos a vencer
+                if (data.data.alertas.conveniosVencen) {
+                    const alertBanner = document.getElementById('alertBanner');
+                    alertBanner.textContent = `⚠️ ALERTA: ${data.data.alertas.mensaje}`;
+                    alertBanner.style.display = 'block';
+                } else {
+                    document.getElementById('alertBanner').style.display = 'none';
+                }
+
+                // Cargar convenios próximos a vencer
+                loadConveniosVencimiento();
+
+                document.getElementById('lastUpdate').textContent = 
+                    `🕒 Última actualización: ${new Date().toLocaleString()}`;
+
+            } catch (error) {
+                console.error('Error en loadDashboard:', error);
+            }
+        }
+
+        function updateWidgets(widgets) {
+            const grid = document.getElementById('metricsGrid');
+            grid.innerHTML = '';
+
+            Object.entries(widgets).forEach(([key, widget]) => {
+                const widgetElement = document.createElement('div');
+                widgetElement.className = `widget ${widget.tipo}`;
+                
+                widgetElement.innerHTML = `
+                    <div class="widget-header">
+                        <div class="widget-icon">${widget.icono}</div>
+                    </div>
+                    <div class="widget-value">${widget.valor.toLocaleString()}</div>
+                    <div class="widget-label">${widget.label}</div>
+                `;
+                
+                grid.appendChild(widgetElement);
+            });
+        }
+
+        async function loadConveniosVencimiento() {
+            const container = document.getElementById('conveniosVencimiento');
+            container.innerHTML = '<div class="spinner"></div><p>Cargando convenios...</p>';
+            
+            const dias = document.getElementById('diasVencimiento').value || 90;
+            
+            const { response, data, error } = await makeRequest(
+                `${API_BASE}/dashboard/convenios-vencimiento?dias=${dias}&limit=10`
+            );
+
+            if (error || !response.ok) {
+                container.innerHTML = `<p class="error">Error al cargar convenios: ${error || data.message}</p>`;
+                return;
+            }
+
+            if (data.data.convenios.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #27ae60; padding: 20px;">✅ No hay convenios próximos a vencer en los próximos ' + dias + ' días</p>';
+                return;
+            }
+
+            container.innerHTML = '';
+            data.data.convenios.forEach(convenio => {
+                const item = document.createElement('div');
+                item.className = `convenio-item urgencia-${convenio.urgencia}`;
+                
+                const partes = convenio.partes.map(p => p.parte.nombre).join(', ');
+                
+                item.innerHTML = `
+                    <div class="convenio-titulo">${convenio.titulo}</div>
+                    <div class="convenio-info">
+                        <span class="days-remaining ${convenio.urgencia}">${convenio.diasRestantes} días restantes</span>
+                        <br>
+                        <strong>Vence:</strong> ${new Date(convenio.fechaFin).toLocaleDateString()}
+                        <br>
+                        <strong>Partes:</strong> ${partes}
+                    </div>
+                `;
+                
+                container.appendChild(item);
+            });
+        }
+
+        async function loadEstadisticas() {
+            const container = document.getElementById('estadisticasDetalle');
+            container.innerHTML = '<div class="spinner"></div><p>Cargando estadísticas...</p>';
+            
+            const { response, data, error } = await makeRequest(`${API_BASE}/dashboard/estadisticas-convenios`);
+
+            if (error || !response.ok) {
+                container.innerHTML = `<p class="error">Error al cargar estadísticas: ${error || data.message}</p>`;
+                return;
+            }
+
+            const statsHtml = `
+                <div class="stats-row">
+                    ${Object.entries(data.data.porcentajes).map(([estado, info]) => `
+                        <div class="stat-item">
+                            <div class="stat-value">${info.cantidad}</div>
+                            <div class="stat-label">${estado}</div>
+                            <div style="font-size: 0.8em; color: #3498db;">${info.porcentaje}%</div>
+                        </div>
+                    `).join('')}
+                </div>
+                <p style="text-align: center; margin-top: 15px; color: #7f8c8d;">
+                    <strong>Total de convenios:</strong> ${data.data.total}
+                </p>
+            `;
+            
+            container.innerHTML = statsHtml;
+        }
+
+        // Auto-refresh cada 5 minutos si está autenticado
+        setInterval(() => {
+            if (authToken && document.getElementById('dashboardContent').style.display !== 'none') {
+                loadDashboard();
+            }
+        }, 300000); // 5 minutos
+    </script>
+</body>
+</html>

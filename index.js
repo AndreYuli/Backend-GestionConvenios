@@ -3,6 +3,12 @@ import express from 'express';
 import cors from 'cors';
 import conveniosRoutes from './src/routes/convenios.routes.js';
 import authRoutes from './src/routes/auth.routes.js';
+import documentsRoutes from './src/routes/documents.routes.js';
+import participantesRoutes from './src/routes/participantes.routes.js';
+import actividadesRoutes from './src/routes/actividades.routes.js';
+import productosRoutes from './src/routes/productos.routes.js';
+import dashboardRoutes from './src/routes/dashboard.routes.js';
+import reportsRoutes from './src/routes/reports.routes.js';
 import { 
   createCorsConfig, 
   corsLogger, 
@@ -42,6 +48,12 @@ app.get('/', (req, res) => {
 // 3. Rutas de la API
 app.use('/api/convenios', conveniosRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api', documentsRoutes);
+app.use('/api', participantesRoutes);
+app.use('/api', actividadesRoutes);
+app.use('/api', productosRoutes);
+app.use('/api', dashboardRoutes);
+app.use('/api', reportsRoutes);
 
 // Endpoint de prueba para diagnóstico
 app.post('/api/test/register', (req, res) => {

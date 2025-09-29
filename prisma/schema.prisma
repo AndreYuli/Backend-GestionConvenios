@@ -14,6 +14,23 @@ enum EstadoConvenio {
   Archivado
 }
 
+enum EstadoActividad {
+  Planeada
+  EnProgreso
+  Completada
+}
+
+enum TipoProducto {
+  Articulo
+  Software
+  Patente
+  Informe
+  Manual
+  Prototipo
+  Dataset
+  Otro
+}
+
 enum RolUsuario {
   ADMIN
   GESTOR
@@ -30,6 +47,8 @@ model Convenio {
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
   partes       ConvenioParte[]
+  documentos   Document[]
+  actividades  Actividad[]
 }
 
 model Parte {
@@ -62,9 +81,109 @@ model User {
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
 
+  // Relaciones
+  documents   Document[]
+  actividades Actividad[]
+
   // Índices para optimizar consultas frecuentes
   @@index([email])
   @@index([rol])
   @@index([isActive])
   @@map("users")
+}
+
+// Modelo Document para gestión de archivos adjuntos a convenios
+model Document {
+  id            Int       @id @default(autoincrement())
+  convenioId    Int
+  fileName      String    // Nombre original del archivo
+  fileNameDisk  String    // Nombre único en el disco
+  filePath      String    // Ruta completa del archivo
+  fileSize      Int       // Tamaño en bytes
+  mimeType      String    // Tipo MIME del archivo
+  uploadedBy    Int       // ID del usuario que subió el archivo
+  description   String?   // Descripción opcional del documento
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relaciones
+  convenio      Convenio  @relation(fields: [convenioId], references: [id], onDelete: Cascade)
+  uploader      User      @relation(fields: [uploadedBy], references: [id])
+
+  // Índices para optimizar consultas
+  @@index([convenioId])
+  @@index([uploadedBy])
+  @@index([createdAt])
+  @@map("documents")
+}
+
+// Modelo Actividad para gestión de tareas y proyectos vinculados a convenios
+model Actividad {
+  id             Int              @id @default(autoincrement())
+  convenioId     Int
+  nombre         String
+  descripcion    String           @db.Text
+  responsableId  Int
+  fechaInicio    DateTime
+  fechaFin       DateTime
+  estado         EstadoActividad  @default(Planeada)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  // Relaciones
+  convenio       Convenio         @relation(fields: [convenioId], references: [id], onDelete: Cascade)
+  responsable    User             @relation(fields: [responsableId], references: [id])
+  participantes  Participante[]
+  productos      Producto[]
+
+  // Índices para optimizar consultas
+  @@index([convenioId])
+  @@index([responsableId])
+  @@index([estado])
+  @@index([fechaInicio])
+  @@index([fechaFin])
+  @@map("actividades")
+}
+
+// Modelo Participante para gesti�n de estudiantes y docentes en actividades
+// Modelo Participante para gestión de estudiantes y docentes en actividades
+model Participante {
+  id                Int        @id @default(autoincrement())
+  actividadId       Int
+  nombreCompleto    String     @db.VarChar(255)
+  correoElectronico String     @db.VarChar(255)
+  rol               String     @db.VarChar(100) // Estudiante, Docente, Investigador, Externo, etc.
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  // Relaciones
+  actividad         Actividad  @relation(fields: [actividadId], references: [id], onDelete: Cascade)
+
+  // Índices para optimizar consultas
+  @@index([actividadId])
+  @@index([correoElectronico])
+  @@index([rol])
+  @@map("participantes")
+}
+
+// Modelo Producto para gestión de resultados tangibles de actividades
+model Producto {
+  id          Int           @id @default(autoincrement())
+  actividadId Int
+  nombre      String        @db.VarChar(255)
+  tipo        TipoProducto
+  descripcion String        @db.Text
+  enlace      String?       @db.VarChar(500)  // URL o enlace al producto
+  archivoUrl  String?       @db.VarChar(500)  // Ruta del archivo subido (opcional)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Relaciones
+  actividad   Actividad     @relation(fields: [actividadId], references: [id], onDelete: Cascade)
+
+  // Índices para optimizar consultas
+  @@index([actividadId])
+  @@index([tipo])
+  @@index([createdAt])
+  @@map("productos")
 }
