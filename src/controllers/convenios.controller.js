@@ -1,19 +1,40 @@
 /**
  * @fileoverview Controlador de Convenios - Lógica de Consulta Optimizada
  * @description Implementa la lógica de consulta a la base de datos con filtros eficientes
- * @author Tu Nombre
+ * y patrones de diseño para optimizar el rendimiento y mantenibilidad
+ * @module controllers/convenios
  * @version 1.0.0
+ * 
+ * @typedef {Object} ConvenioFilter
+ * @property {string} [estado] - Estado del convenio (Borrador, Activo, Finalizado, Archivado)
+ * @property {string[]} [estados] - Lista de estados para filtrar
+ * @property {string} [fechaInicio] - Fecha de inicio mínima (formato YYYY-MM-DD)
+ * @property {string} [fechaFin] - Fecha de fin máxima (formato YYYY-MM-DD)
+ * @property {string} [busqueda] - Texto para búsqueda en nombre y descripción
+ * 
+ * @typedef {Object} QueryOptions
+ * @property {boolean} [includePartes=false] - Incluir relaciones con partes
+ * @property {string} [sortBy='createdAt'] - Campo para ordenamiento
+ * @property {string} [sortOrder='desc'] - Dirección de ordenamiento (asc, desc)
+ * @property {number} [page=1] - Número de página para paginación
+ * @property {number} [limit=10] - Límite de registros por página
  * 
  * Patrones implementados:
  * - Repository Pattern: Separación de lógica de acceso a datos
  * - Builder Pattern: Construcción dinámica de queries
  * - Strategy Pattern: Diferentes estrategias de filtrado
+ * - Factory Pattern: Creación de queries específicas según criterios
  * 
  * Complejidad Big O optimizada:
  * - Consultas básicas: O(log n) usando índices de BD
  * - Filtros múltiples: O(log n * m) donde m = número de filtros
  * - Búsqueda de texto: O(log n) usando índices de texto completo
  * - Paginación: O(1) usando OFFSET/LIMIT
+ * 
+ * Seguridad implementada:
+ * - Validación de parámetros de entrada
+ * - Sanitización de parámetros de búsqueda
+ * - Límites en tamaños de consulta para prevenir DoS
  */
 
 import { PrismaClient } from '@prisma/client';
@@ -21,9 +42,19 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 /**
- * @class QueryBuilder
+ * @class ConvenioQueryBuilder
  * @description Builder pattern para construir queries Prisma de forma dinámica
+ * Permite construir consultas complejas de manera incremental y legible.
+ * Cada método devuelve this para permitir encadenamiento de métodos.
  * Complejidad: O(1) para cada operación de construcción
+ * 
+ * @example
+ * const query = new ConvenioQueryBuilder()
+ *   .filterByEstado('Activo')
+ *   .filterByDateRange('2023-01-01', '2023-12-31')
+ *   .includePartes(true)
+ *   .paginate(1, 10)
+ *   .build();
  */
 class ConvenioQueryBuilder {
   constructor() {
@@ -42,7 +73,10 @@ class ConvenioQueryBuilder {
   }
 
   /**
-   * Filtro por estado - O(1) construcción, O(log n) ejecución con índice
+   * Aplica filtro por estado del convenio
+   * @param {string} estado - Estado del convenio (Borrador, Activo, Finalizado, Archivado)
+   * @returns {ConvenioQueryBuilder} - Instancia actual para encadenamiento
+   * @complexity O(1) construcción, O(log n) ejecución con índice
    */
   filterByEstado(estado) {
     if (estado && ['Borrador', 'Activo', 'Finalizado', 'Archivado'].includes(estado)) {
@@ -52,7 +86,12 @@ class ConvenioQueryBuilder {
   }
 
   /**
-   * Filtro por rango de fechas - O(1) construcción, O(log n) ejecución con índice
+   * Aplica filtro por rango de fechas de inicio del convenio
+   * @param {string} fechaInicio - Fecha de inicio mínima (formato YYYY-MM-DD)
+   * @param {string} fechaFin - Fecha de inicio máxima (formato YYYY-MM-DD)
+   * @returns {ConvenioQueryBuilder} - Instancia actual para encadenamiento
+   * @complexity O(1) construcción, O(log n) ejecución con índice
+   * @throws {Error} Si las fechas tienen formato inválido
    */
   filterByDateRange(fechaInicio, fechaFin) {
     if (fechaInicio || fechaFin) {
@@ -70,7 +109,11 @@ class ConvenioQueryBuilder {
   }
 
   /**
-   * Búsqueda de texto - O(1) construcción, O(log n) con índice de texto completo
+   * Aplica filtro de búsqueda de texto en nombre y descripción
+   * @param {string} searchText - Texto a buscar
+   * @returns {ConvenioQueryBuilder} - Instancia actual para encadenamiento
+   * @complexity O(1) construcción, O(log n) con índice de texto completo
+   * @security Sanitiza el texto de búsqueda para prevenir inyecciones
    */
   filterBySearchText(searchText) {
     if (searchText && searchText.trim()) {
@@ -94,7 +137,11 @@ class ConvenioQueryBuilder {
   }
 
   /**
-   * Filtro por múltiples estados - O(1) construcción, O(log n) ejecución
+   * Aplica filtro por múltiples estados del convenio
+   * @param {string[]} estados - Lista de estados válidos
+   * @returns {ConvenioQueryBuilder} - Instancia actual para encadenamiento
+   * @complexity O(1) construcción, O(log n) ejecución
+   * @security Valida que los estados sean valores permitidos
    */
   filterByEstados(estados) {
     if (estados && Array.isArray(estados) && estados.length > 0) {
@@ -112,7 +159,10 @@ class ConvenioQueryBuilder {
   }
 
   /**
-   * Incluir relaciones - O(1) construcción
+   * Configura la inclusión de relaciones con partes
+   * @param {boolean} includePartes - Indica si se deben incluir las partes relacionadas
+   * @returns {ConvenioQueryBuilder} - Instancia actual para encadenamiento
+   * @complexity O(1) construcción, O(n) para carga de relaciones
    */
   includePartes(includePartes = false) {
     if (includePartes) {
@@ -126,7 +176,12 @@ class ConvenioQueryBuilder {
   }
 
   /**
-   * Ordenamiento - O(1) construcción, O(n log n) ejecución en el peor caso
+   * Configura el ordenamiento de resultados
+   * @param {string} sortField - Campo por el cual ordenar
+   * @param {string} sortOrder - Dirección del ordenamiento ('asc' o 'desc')
+   * @returns {ConvenioQueryBuilder} - Instancia actual para encadenamiento
+   * @complexity O(1) construcción, O(n log n) ejecución en el peor caso
+   * @security Valida campos y direcciones de ordenamiento permitidos
    */
   sortBy(sortField = 'createdAt', sortOrder = 'desc') {
     const validSortFields = ['nombre', 'fechaInicio', 'fechaFin', 'createdAt', 'updatedAt'];
@@ -141,7 +196,12 @@ class ConvenioQueryBuilder {
   }
 
   /**
-   * Paginación - O(1) construcción y ejecución para OFFSET/LIMIT
+   * Configura la paginación de resultados
+   * @param {number} page - Número de página (mínimo 1)
+   * @param {number} limit - Registros por página (entre 1 y 100)
+   * @returns {ConvenioQueryBuilder} - Instancia actual para encadenamiento
+   * @complexity O(1) construcción y ejecución para OFFSET/LIMIT
+   * @security Limita el tamaño máximo de página para prevenir DoS
    */
   paginate(page = 1, limit = 10) {
     const validPage = Math.max(1, parseInt(page));
@@ -153,7 +213,9 @@ class ConvenioQueryBuilder {
   }
 
   /**
-   * Construir query final
+   * Construye y devuelve el objeto de consulta final
+   * @returns {Object} Objeto de consulta para Prisma
+   * @complexity O(1)
    */
   build() {
     return { ...this.query };
@@ -163,6 +225,15 @@ class ConvenioQueryBuilder {
 /**
  * @class ConvenioQueryService
  * @description Service pattern para manejar operaciones de consulta complejas
+ * Implementa métodos de alto nivel para consultas de convenios con diferentes
+ * criterios y optimizaciones. Utiliza ConvenioQueryBuilder internamente.
+ * 
+ * @example
+ * const service = new ConvenioQueryService();
+ * const result = await service.findConveniosWithFilters(
+ *   { estado: 'Activo', busqueda: 'Universidad' },
+ *   { page: 1, limit: 10 }
+ * );
  */
 class ConvenioQueryService {
   constructor() {
@@ -171,12 +242,35 @@ class ConvenioQueryService {
 
   /**
    * Consulta optimizada de convenios con filtros múltiples
-   * Complejidad total: O(log n * m) donde n=registros, m=filtros
+   * @param {ConvenioFilter} filters - Filtros de búsqueda
+   * @param {QueryOptions} options - Opciones de consulta (ordenamiento, paginación)
+   * @param {boolean} [debugMode=false] - Modo debug para mostrar query generada
+   * @returns {Promise<Object>} Resultado con data, metadatos y estadísticas de rendimiento
+   * @throws {Error} Si ocurre un error durante la consulta
+   * @complexity O(log n * m) donde n=registros, m=filtros
+   * @async
    * 
-   * @param {Object} filters - Filtros de búsqueda
-   * @param {Object} options - Opciones de consulta (ordenamiento, paginación)
-   * @param {boolean} debugMode - Modo debug para mostrar query generada
-   * @returns {Promise<Object>} Resultado con data y metadatos
+   * @example
+   * // Buscar convenios activos con paginación
+   * const result = await service.findConveniosWithFilters(
+   *   { estado: 'Activo' },
+   *   { page: 1, limit: 10 }
+   * );
+   * 
+   * @example
+   * // Búsqueda avanzada con múltiples filtros
+   * const result = await service.findConveniosWithFilters(
+   *   { 
+   *     busqueda: 'universidad', 
+   *     fechaInicio: '2023-01-01',
+   *     fechaFin: '2023-12-31'
+   *   },
+   *   { 
+   *     includePartes: true,
+   *     sortBy: 'nombre',
+   *     sortOrder: 'asc'
+   *   }
+   * );
    */
   async findConveniosWithFilters(filters = {}, options = {}, debugMode = false) {
     try {
@@ -271,7 +365,13 @@ class ConvenioQueryService {
   }
 
   /**
-   * Contar registros con filtros aplicados - O(log n)
+   * Cuenta el total de registros que coinciden con los filtros aplicados
+   * @param {ConvenioFilter} filters - Filtros de búsqueda
+   * @param {boolean} [debugMode=false] - Modo debug para mostrar query generada
+   * @returns {Promise<number>} Total de registros que coinciden con los filtros
+   * @complexity O(log n) con índices optimizados
+   * @private
+   * @async
    */
   async countConveniosWithFilters(filters = {}) {
     const countQuery = this.queryBuilder
@@ -292,7 +392,20 @@ class ConvenioQueryService {
   }
 
   /**
-   * Búsqueda de convenios por ID - O(1) con índice primario
+   * Busca un convenio específico por su ID
+   * @param {number|string} id - ID del convenio a buscar
+   * @param {boolean} [includePartes=false] - Indica si se deben incluir las partes relacionadas
+   * @returns {Promise<Object>} Resultado con datos del convenio o mensaje de error
+   * @throws {Error} Si el ID es inválido o ocurre un error en la consulta
+   * @complexity O(1) con índice primario
+   * @async
+   * 
+   * @example
+   * const result = await service.findConvenioById(123, true);
+   * if (result.success) {
+   *   const convenio = result.data;
+   *   // Procesar convenio
+   * }
    */
   async findConvenioById(id, includePartes = false) {
     try {
@@ -340,7 +453,31 @@ class ConvenioQueryService {
   }
 
   /**
-   * Búsqueda avanzada con múltiples criterios - O(log n * m)
+   * Realiza una búsqueda avanzada con múltiples criterios combinados
+   * @param {Object} searchCriteria - Criterios de búsqueda avanzada
+   * @param {string} [searchCriteria.textSearch] - Texto para búsqueda
+   * @param {string[]} [searchCriteria.estados] - Estados para filtrar
+   * @param {string} [searchCriteria.fechaDesde] - Fecha inicial (YYYY-MM-DD)
+   * @param {string} [searchCriteria.fechaHasta] - Fecha final (YYYY-MM-DD)
+   * @param {boolean} [searchCriteria.incluirPartes=false] - Incluir partes relacionadas
+   * @param {string} [searchCriteria.ordenarPor='createdAt'] - Campo para ordenamiento
+   * @param {string} [searchCriteria.orden='desc'] - Dirección de ordenamiento
+   * @param {number} [searchCriteria.pagina=1] - Número de página
+   * @param {number} [searchCriteria.limite=20] - Registros por página
+   * @returns {Promise<Object>} Resultado con datos y metadatos
+   * @throws {Error} Si ocurre un error durante la búsqueda
+   * @complexity O(log n * m) donde n=registros, m=criterios
+   * @async
+   * 
+   * @example
+   * const result = await service.advancedSearch({
+   *   textSearch: 'universidad',
+   *   estados: ['Activo', 'Borrador'],
+   *   fechaDesde: '2023-01-01',
+   *   incluirPartes: true,
+   *   pagina: 1,
+   *   limite: 20
+   * });
    */
   async advancedSearch(searchCriteria) {
     try {
@@ -378,7 +515,16 @@ class ConvenioQueryService {
   }
 
   /**
-   * Estadísticas y agregaciones - O(n) en el peor caso, optimizable con índices
+   * Obtiene estadísticas y agregaciones sobre los convenios
+   * @returns {Promise<Object>} Estadísticas de convenios
+   * @throws {Error} Si ocurre un error durante la consulta
+   * @complexity O(n) en el peor caso, optimizable con índices
+   * @async
+   * 
+   * @example
+   * const stats = await service.getConveniosStats();
+   * console.log(`Total de convenios: ${stats.total}`);
+   * console.log(`Convenios activos: ${stats.porEstado.Activo || 0}`);
    */
   async getConveniosStats() {
     try {

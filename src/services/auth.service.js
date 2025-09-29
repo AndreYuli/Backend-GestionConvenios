@@ -2,13 +2,15 @@
  * @fileoverview AuthService - Sistema de Autenticación con Patrones de Diseño
  * @description Implementa Strategy Pattern, Factory Pattern y análisis Big O
  * @author Sistema de Gestión de Convenios
- * @version 1.0.0
+ * @version 1.1.0
  */
 
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
 import PasswordValidationService from './password-validation.service.js';
+import TokenService from './token.service.js';
+import logger from '../lib/logger.js';
 
 const prisma = new PrismaClient();
 
@@ -230,6 +232,9 @@ class AuthService {
       saltRounds: parseInt(process.env.BCRYPT_SALT_ROUNDS) || 12,
       minTimeMs: 100
     });
+    
+    // Inicializar servicio de tokens
+    this.tokenService = new TokenService();
   }
 
   /**
@@ -264,16 +269,21 @@ class AuthService {
           .build();
       }
 
-      // Factory Pattern: Creación de tokens O(1)
-      const accessToken = TokenFactory.createAccessToken({
+      // Generar par de tokens usando el servicio de tokens
+      const tokenResult = await this.tokenService.generateTokenPair({
         userId: authResult.user.id,
         email: authResult.user.email,
         rol: authResult.user.rol
       });
-
-      const refreshToken = TokenFactory.createRefreshToken({
-        userId: authResult.user.id
-      });
+      
+      if (!tokenResult.success) {
+        logger.error('Error al generar tokens', { error: tokenResult.error });
+        return new AuthResponseBuilder()
+          .setSuccess(false)
+          .setMessage('Error al generar tokens de autenticación')
+          .setErrors(['TOKEN_GENERATION_ERROR'])
+          .build();
+      }
 
       const executionTime = Date.now() - startTime;
 
@@ -289,9 +299,9 @@ class AuthService {
             lastLogin: authResult.user.lastLogin
           },
           tokens: {
-            accessToken,
-            refreshToken,
-            expiresIn: 3600 // 1 hora en segundos
+            accessToken: tokenResult.accessToken,
+            refreshToken: tokenResult.refreshToken,
+            expiresIn: Math.floor(tokenResult.accessTokenExpiry / 1000) // Convertir ms a segundos
           },
           performance: {
             executionTime: `${executionTime}ms`,
@@ -301,7 +311,7 @@ class AuthService {
         .build();
 
     } catch (error) {
-      console.error('❌ Error en AuthService.login:', error);
+      logger.error('Error en AuthService.login:', { error });
       
       return new AuthResponseBuilder()
         .setSuccess(false)
@@ -313,9 +323,11 @@ class AuthService {
 
   /**
    * Validar token - Complejidad: O(1)
+   * @param {string} token - Token JWT de acceso
+   * @returns {Object} Resultado de validación con payload si es válido
    */
-  async validateToken(token, type = 'access') {
-    return TokenFactory.verifyToken(token, type);
+  async validateToken(token) {
+    return this.tokenService.verifyAccessToken(token);
   }
 
   /**
@@ -339,7 +351,7 @@ class AuthService {
       
       return user;
     } catch (error) {
-      console.error('❌ Error buscando usuario por email:', error);
+      logger.error('Error buscando usuario por email:', { error });
       return null;
     }
   }
@@ -382,7 +394,11 @@ class AuthService {
         }
       });
 
-      console.log(`✅ Usuario creado exitosamente: ${newUser.email} (ID: ${newUser.id})`);
+      logger.info(`Usuario creado exitosamente`, {
+        userId: newUser.id,
+        email: newUser.email,
+        rol: newUser.rol
+      });
 
       return {
         success: true,
@@ -391,10 +407,11 @@ class AuthService {
       };
 
     } catch (error) {
-      console.error('❌ Error creando usuario:', error);
+      logger.error('Error creando usuario:', { error });
 
       // Manejar errores específicos de Prisma
       if (error.code === 'P2002' && error.meta?.target?.includes('email')) {
+        logger.warn('Intento de registro con email duplicado', { email: userData.email });
         return {
           success: false,
           message: 'El email ya está registrado',
@@ -427,6 +444,7 @@ class AuthService {
       userSearch: 'O(log n) - Búsqueda por email indexado',
       tokenCreation: 'O(1) - Creación de JWT',
       tokenValidation: 'O(1) - Verificación de JWT',
+      tokenRefresh: 'O(log n) - Verificación y rotación de tokens',
       strategySelection: 'O(1) - Map lookup',
       responseBuilding: 'O(1) - Construcción de objeto'
     };
@@ -434,4 +452,4 @@ class AuthService {
 }
 
 export default AuthService;
-export { TokenFactory, AuthResponseBuilder };
+export { AuthResponseBuilder };

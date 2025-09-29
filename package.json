@@ -17,7 +17,9 @@
     "test:model": "jest tests/convenio.model.working.test.js",
     "test:database": "jest tests/database.working.test.js",
     "test:simple": "jest tests/simple.test.js",
-    "test:all": "jest --testPathPatterns=\"working|simple\"",
+    "test:token": "node --experimental-loader ./tests/esm-loader.js node_modules/.bin/jest tests/token.service.test.js tests/token.controller.test.js",
+    "test:auth": "node --experimental-loader ./tests/esm-loader.js node_modules/.bin/jest tests/auth.middleware.test.js",
+    "test:all": "jest --testPathPatterns=\"working|simple|token|auth\"",
     "test:filtros": "node --experimental-loader ./tests/esm-loader.js node_modules/.bin/jest tests/filtros.integration.test.js",
     "test:integration": "node --experimental-loader ./tests/esm-loader.js node_modules/.bin/jest tests/filtros.integration.test.js --verbose"
   },
@@ -31,9 +33,11 @@
     "dotenv": "^17.2.1",
     "express": "^4.18.2",
     "express-rate-limit": "^8.1.0",
+    "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
     "puppeteer": "^24.22.3",
+    "winston": "^3.11.0",
     "zod": "^4.1.1"
   },
   "devDependencies": {

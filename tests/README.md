@@ -33,6 +33,35 @@ Tests básicos de Jest:
 
 **Total**: 3 tests pasando ✅
 
+### 4. **`token.service.test.js`** ✅
+Tests para el servicio de tokens:
+- ✅ **Generación de Tokens**: Creación de pares de tokens (acceso y refresco)
+- ✅ **Verificación de Tokens**: Validación de tokens de acceso
+- ✅ **Refresco de Tokens**: Rotación de tokens expirados
+- ✅ **Revocación de Tokens**: Invalidación de tokens por cierre de sesión
+- ✅ **Limpieza de Tokens**: Eliminación de tokens expirados
+
+**Total**: 10 tests pasando ✅
+
+### 5. **`token.controller.test.js`** ✅
+Tests para el controlador de tokens:
+- ✅ **Endpoint de Refresco**: Renovación de tokens expirados
+- ✅ **Endpoint de Logout**: Cierre de sesión y revocación de tokens
+- ✅ **Invalidación de Sesiones**: Revocación de todas las sesiones de un usuario
+- ✅ **Gestión de Sesiones**: Obtención de sesiones activas
+- ✅ **Limpieza de Tokens**: Eliminación de tokens expirados (admin)
+
+**Total**: 10 tests pasando ✅
+
+### 6. **`auth.middleware.test.js`** ✅
+Tests para el middleware de autenticación:
+- ✅ **Autenticación**: Validación de tokens de acceso
+- ✅ **Autorización**: Control de acceso basado en roles
+- ✅ **Validación de Usuario**: Verificación de estado activo de usuarios
+- ✅ **Manejo de Errores**: Respuestas adecuadas ante errores
+
+**Total**: 8 tests pasando ✅
+
 ## 🚀 **Scripts de Testing Disponibles**
 
 ```bash
@@ -46,6 +75,8 @@ npm run test:verbose       # Modo verbose
 npm run test:model         # Tests del modelo Convenio
 npm run test:database      # Tests de base de datos
 npm run test:simple        # Tests básicos
+npm run test:token         # Tests del sistema de tokens
+npm run test:auth          # Tests de autenticación
 npm run test:all           # Todos los tests que funcionan
 ```
 

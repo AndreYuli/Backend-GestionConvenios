@@ -567,7 +567,7 @@
             }
 
             if (response.ok) {
-                authToken = data.data.token;
+                authToken = data.data.tokens.accessToken;
                 
                 // Verificar permisos
                 if (!['ADMIN', 'GESTOR'].includes(data.data.user.rol)) {
@@ -584,7 +584,7 @@
                 
                 // Actualizar información del usuario
                 document.getElementById('userInfo').style.display = 'block';
-                document.getElementById('userEmail').textContent = data.data.user.correoElectronico;
+                document.getElementById('userEmail').textContent = data.data.user.email;
                 document.getElementById('userRole').textContent = data.data.user.rol;
 
                 // Configurar fechas por defecto

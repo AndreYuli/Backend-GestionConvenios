@@ -49,6 +49,13 @@ model Convenio {
   partes       ConvenioParte[]
   documentos   Document[]
   actividades  Actividad[]
+  
+  // Índices para optimizar consultas frecuentes
+  @@index([nombre])
+  @@index([estado])
+  @@index([fechaInicio])
+  @@index([fechaFin])
+  @@index([createdAt])
 }
 
 model Parte {
@@ -68,6 +75,8 @@ model ConvenioParte {
   parte       Parte    @relation(fields: [parteId], references: [id], onDelete: Cascade)
 
   @@id([convenioId, parteId])
+  @@index([convenioId])
+  @@index([parteId])
 }
 
 // Modelo User para autenticación - Optimizado para O(log n) en búsquedas
@@ -82,8 +91,9 @@ model User {
   updatedAt DateTime    @updatedAt
 
   // Relaciones
-  documents   Document[]
-  actividades Actividad[]
+  documents     Document[]
+  actividades   Actividad[]
+  refreshTokens RefreshToken[] // Relación con tokens de refresco
 
   // Índices para optimizar consultas frecuentes
   @@index([email])
@@ -186,4 +196,26 @@ model Producto {
   @@index([tipo])
   @@index([createdAt])
   @@map("productos")
+}
+
+// Modelo RefreshToken para gestión de tokens de refresco con rotación
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  jti       String   @unique // JWT ID único para identificar el token
+  token     String   @db.Text // Hash del token, no el token en sí mismo
+  userId    Int      // Usuario al que pertenece el token
+  expiresAt DateTime // Fecha de expiración del token
+  isRevoked Boolean  @default(false) // Indica si el token ha sido revocado
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relaciones
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Índices para optimizar consultas
+  @@index([jti])
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([isRevoked])
+  @@map("refresh_tokens")
 }

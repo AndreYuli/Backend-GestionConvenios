@@ -2,11 +2,12 @@
  * @fileoverview Middleware de Autenticación con Decorator Pattern y Rate Limiting
  * @description Sistema de middleware robusto con análisis Big O y seguridad avanzada
  * @author Sistema de Gestión de Convenios
- * @version 1.0.0
+ * @version 1.1.0
  */
 
 import rateLimit from 'express-rate-limit';
-import { TokenFactory } from '../services/auth.service.js';
+import TokenService from '../services/token.service.js';
+import logger from '../lib/logger.js';
 
 /**
  * Decorator Pattern: Base para decorar middlewares
@@ -67,7 +68,12 @@ class SecurityLogDecorator extends MiddlewareDecorator {
     const ip = req.ip || req.connection.remoteAddress || 'unknown';
     const userAgent = req.get('User-Agent') || 'Unknown';
     
-    console.log(`🔐 [AUTH] ${new Date().toISOString()} - IP: ${ip} - UserAgent: ${userAgent}`);
+    logger.info(`Solicitud de autenticación`, {
+      ip,
+      userAgent,
+      path: req.path,
+      method: req.method
+    });
     
     // Interceptar la respuesta para logging adicional
     const originalSend = res.send;
@@ -76,9 +82,19 @@ class SecurityLogDecorator extends MiddlewareDecorator {
       const statusCode = res.statusCode;
       
       if (statusCode >= 400) {
-        console.log(`⚠️ [AUTH_FAIL] Status: ${statusCode} - Time: ${executionTime}ms - IP: ${ip}`);
+        logger.warn(`Fallo de autenticación`, {
+          statusCode,
+          executionTime: `${executionTime}ms`,
+          ip,
+          path: req.path
+        });
       } else {
-        console.log(`✅ [AUTH_SUCCESS] Status: ${statusCode} - Time: ${executionTime}ms - IP: ${ip}`);
+        logger.info(`Autenticación exitosa`, {
+          statusCode,
+          executionTime: `${executionTime}ms`,
+          ip,
+          path: req.path
+        });
       }
       
       return originalSend.call(this, data);
@@ -92,6 +108,8 @@ class SecurityLogDecorator extends MiddlewareDecorator {
  * Middleware base de autenticación
  * Complejidad: O(1) para validación de JWT
  */
+const tokenService = new TokenService();
+
 const baseAuthMiddleware = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
@@ -123,7 +141,7 @@ const baseAuthMiddleware = async (req, res, next) => {
     }
 
     // Validar token: O(1)
-    const tokenValidation = TokenFactory.verifyToken(token, 'access');
+    const tokenValidation = tokenService.verifyAccessToken(token);
     
     if (!tokenValidation.success) {
       return res.status(401).json({
@@ -139,12 +157,13 @@ const baseAuthMiddleware = async (req, res, next) => {
       email: tokenValidation.payload.email,
       rol: tokenValidation.payload.rol,
       tokenIat: tokenValidation.payload.iat,
-      tokenExp: tokenValidation.payload.exp
+      tokenExp: tokenValidation.payload.exp,
+      tokenJti: tokenValidation.payload.jti // Añadir el ID único del token
     };
 
     next();
   } catch (error) {
-    console.error('❌ Error en authMiddleware:', error);
+    logger.error('Error en authMiddleware:', { error });
     return res.status(500).json({
       success: false,
       message: 'Error interno de autenticación',
@@ -282,6 +301,9 @@ const validateActiveUser = async (req, res, next) => {
     await prisma.$disconnect();
 
     if (!user || !user.isActive) {
+      // Revocar todos los tokens del usuario si está inactivo
+      await tokenService.revokeAllUserTokens(req.user.id);
+      
       return res.status(401).json({
         success: false,
         message: 'Usuario inactivo o no encontrado',
@@ -294,7 +316,7 @@ const validateActiveUser = async (req, res, next) => {
     
     next();
   } catch (error) {
-    console.error('❌ Error validando usuario activo:', error);
+    logger.error('Error validando usuario activo:', { error });
     res.status(500).json({
       success: false,
       message: 'Error verificando estado del usuario',
