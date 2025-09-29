@@ -48,6 +48,59 @@ const loginOptionsSchema = z.object({
 }).optional();
 
 /**
+ * Esquema de validación para registro usando Zod
+ * Complejidad de validación: O(1) para cada campo
+ */
+const registerSchema = z.object({
+  email: z
+    .string({
+      required_error: 'El email o código estudiantil es requerido',
+      invalid_type_error: 'El email debe ser un string'
+    })
+    .min(1, 'El email no puede estar vacío')
+    .max(255, 'El email es demasiado largo (máximo 255 caracteres)')
+    .refine((value) => {
+      // Validar email o código estudiantil UNAC
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const codigoUNACRegex = /^[0-9]{8,12}$/; // Código estudiantil de 8-12 dígitos
+      
+      return emailRegex.test(value) || codigoUNACRegex.test(value);
+    }, {
+      message: 'Debe ser un email válido o un código estudiantil UNAC (8-12 dígitos)'
+    })
+    .toLowerCase()
+    .trim(),
+  
+  password: z
+    .string({
+      required_error: 'La contraseña es requerida',
+      invalid_type_error: 'La contraseña debe ser un string'
+    })
+    .min(8, 'La contraseña debe tener al menos 8 caracteres')
+    .max(128, 'La contraseña es demasiado larga (máximo 128 caracteres)')
+    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, {
+      message: 'La contraseña debe contener al menos: 1 minúscula, 1 mayúscula y 1 número'
+    }),
+  
+  confirmPassword: z
+    .string({
+      required_error: 'La confirmación de contraseña es requerida',
+      invalid_type_error: 'La confirmación debe ser un string'
+    })
+    .min(1, 'La confirmación de contraseña no puede estar vacía'),
+  
+  rol: z
+    .enum(['ADMIN', 'GESTOR', 'CONSULTOR'], {
+      errorMap: () => ({ message: 'El rol debe ser ADMIN, GESTOR o CONSULTOR' })
+    })
+    .optional()
+    .default('GESTOR')
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Las contraseñas no coinciden",
+  path: ["confirmPassword"]
+});
+
+/**
  * Builder Pattern para respuestas HTTP consistentes
  * Complejidad: O(1) para construcción
  */
@@ -99,7 +152,13 @@ class HttpResponseBuilder {
  */
 class ValidationErrorHandler {
   static formatZodErrors(zodError) {
-    return zodError.errors.map(error => ({
+    // Verificar que zodError y zodError.issues existan
+    if (!zodError || !zodError.issues) {
+      console.error('❌ ValidationErrorHandler: zodError o zodError.issues es undefined', zodError);
+      return [{ field: 'unknown', message: 'Error de validación desconocido', code: 'VALIDATION_ERROR' }];
+    }
+    
+    return zodError.issues.map(error => ({
       field: error.path.join('.'),
       message: error.message,
       code: error.code
@@ -279,6 +338,140 @@ class AuthController {
   }
 
   /**
+   * POST /api/auth/register - Endpoint de registro de usuarios
+   * Complejidad total: O(log n) donde n es el número de usuarios
+   * 
+   * @param {Object} req - Request de Express
+   * @param {Object} res - Response de Express
+   * @returns {Object} Respuesta JSON
+   */
+  async register(req, res) {
+    const startTime = Date.now();
+    const requestId = `register_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    try {
+      console.log(`📝 [REGISTER_START] RequestID: ${requestId} - IP: ${req.ip}`);
+      console.log(`📋 [REGISTER_DATA] RequestID: ${requestId} - Body:`, JSON.stringify(req.body, null, 2));
+      console.log(`📋 [REGISTER_HEADERS] RequestID: ${requestId} - Content-Type:`, req.headers['content-type']);
+
+      // Validación de entrada: O(1) por campo
+      const validationResult = registerSchema.safeParse(req.body);
+      
+      if (!validationResult.success) {
+        console.log(`❌ [REGISTER_VALIDATION_ERROR] RequestID: ${requestId}`);
+        console.log(`❌ [VALIDATION_DETAILS] RequestID: ${requestId} - Error:`, JSON.stringify(validationResult.error.issues, null, 2));
+        
+        const validationErrors = ValidationErrorHandler.formatZodErrors(validationResult.error);
+        const response = ValidationErrorHandler.createValidationResponse(validationErrors, requestId);
+        
+        return res.status(400).json(response);
+      }
+
+      const { email, password, rol } = validationResult.data;
+
+      // Log de intento de registro (sin credenciales sensibles)
+      console.log(`🔍 [REGISTER_ATTEMPT] Email: ${email} - Rol: ${rol} - RequestID: ${requestId}`);
+
+      // Verificar si el usuario ya existe: O(log n)
+      const existingUser = await this.authService.findUserByEmail(email);
+      
+      if (existingUser) {
+        console.log(`❌ [REGISTER_DUPLICATE] Email: ${email} - RequestID: ${requestId}`);
+        
+        const response = new HttpResponseBuilder()
+          .setSuccess(false)
+          .setMessage('El usuario ya está registrado')
+          .setErrors(['USER_ALREADY_EXISTS'])
+          .setRequestId(requestId)
+          .build();
+
+        return res.status(409).json(response);
+      }
+
+      // Crear nuevo usuario: O(log n) para inserción en BD
+      const registrationResult = await this.authService.createUser({
+        email,
+        password,
+        rol
+      });
+
+      const executionTime = Date.now() - startTime;
+
+      if (!registrationResult.success) {
+        console.log(`❌ [REGISTER_FAILED] Email: ${email} - Reason: ${registrationResult.error} - Time: ${executionTime}ms`);
+        
+        const response = new HttpResponseBuilder()
+          .setSuccess(false)
+          .setMessage(registrationResult.message || 'Error en el registro')
+          .setErrors([registrationResult.error || 'REGISTRATION_ERROR'])
+          .setRequestId(requestId)
+          .build();
+
+        return res.status(500).json(response);
+      }
+
+      // Registro exitoso
+      console.log(`✅ [REGISTER_SUCCESS] Email: ${email} - UserID: ${registrationResult.user.id} - Time: ${executionTime}ms`);
+
+      // Generar tokens automáticamente después del registro
+      const loginResult = await this.authService.login(
+        { email, password },
+        'email_password'
+      );
+
+      // Preparar respuesta exitosa
+      const responseData = {
+        user: {
+          id: registrationResult.user.id,
+          email: registrationResult.user.email,
+          rol: registrationResult.user.rol,
+          createdAt: registrationResult.user.createdAt
+        },
+        tokens: loginResult.success ? loginResult.data.tokens : null,
+        registration: {
+          registrationTime: new Date().toISOString(),
+          autoLogin: loginResult.success,
+          message: 'Usuario registrado exitosamente'
+        },
+        performance: {
+          registrationTime: `${executionTime}ms`,
+          complexity: 'O(log n)',
+          operationType: 'user_registration'
+        }
+      };
+
+      const response = new HttpResponseBuilder()
+        .setSuccess(true)
+        .setMessage('Usuario registrado exitosamente')
+        .setData(responseData)
+        .setRequestId(requestId)
+        .build();
+
+      // Headers de seguridad adicionales
+      res.set({
+        'X-Content-Type-Options': 'nosniff',
+        'X-Frame-Options': 'DENY',
+        'X-XSS-Protection': '1; mode=block'
+      });
+
+      return res.status(201).json(response);
+
+    } catch (error) {
+      const executionTime = Date.now() - startTime;
+      console.error(`💥 [REGISTER_INTERNAL_ERROR] RequestID: ${requestId} - Time: ${executionTime}ms`, error);
+
+      const response = new HttpResponseBuilder()
+        .setSuccess(false)
+        .setMessage('Error interno del servidor. Intenta nuevamente.')
+        .setErrors(['INTERNAL_SERVER_ERROR'])
+        .setRequestId(requestId)
+        .build();
+
+      return res.status(500).json(response);
+    }
+  }
+
+  /**
    * POST /api/auth/logout - Cerrar sesión
    * Complejidad: O(1) - solo confirma el logout
    */
@@ -326,6 +519,7 @@ const authController = new AuthController();
 
 // Exportar métodos bound para usar en rutas
 export const login = authController.login.bind(authController);
+export const register = authController.register.bind(authController);
 export const getCurrentUser = authController.getCurrentUser.bind(authController);
 export const logout = authController.logout.bind(authController);
 

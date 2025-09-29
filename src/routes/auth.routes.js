@@ -6,7 +6,7 @@
  */
 
 import { Router } from 'express';
-import { login, getCurrentUser, logout } from '../controllers/auth.controller.js';
+import { login, register, getCurrentUser, logout } from '../controllers/auth.controller.js';
 import { loginRateLimit, AuthMiddlewareFactory } from '../middleware/auth.middleware.js';
 
 const router = Router();
@@ -43,6 +43,35 @@ const authWithLogging = AuthMiddlewareFactory.createWithLogging();
 router.post('/login', 
   loginRateLimit,  // Rate limiting específico para login
   login           // Controlador de login
+);
+
+/**
+ * POST /api/auth/register
+ * Endpoint de registro de usuarios
+ * 
+ * Features:
+ * - Rate limiting: 3 registros por IP cada 30 minutos
+ * - Validación Zod robusta (email/código UNAC, contraseña segura)
+ * - Verificación de duplicados
+ * - Hash automático de contraseña
+ * - Auto-login después del registro
+ * 
+ * Complejidad: O(log n) para verificación de duplicados e inserción
+ * 
+ * @body {string} email - Email o código estudiantil UNAC (requerido)
+ * @body {string} password - Contraseña (mín. 8 chars, mayús., minús., número)
+ * @body {string} confirmPassword - Confirmación de contraseña (requerido)
+ * @body {string} [rol] - Rol del usuario (ADMIN, GESTOR) (opcional, default: GESTOR)
+ * 
+ * @returns {Object} 201 - Registro exitoso con tokens
+ * @returns {Object} 400 - Errores de validación
+ * @returns {Object} 409 - Usuario ya existe
+ * @returns {Object} 429 - Demasiados intentos de registro
+ * @returns {Object} 500 - Error interno
+ */
+router.post('/register',
+  loginRateLimit,  // Reutilizar rate limiting del login
+  register        // Controlador de registro
 );
 
 /**
@@ -113,19 +142,23 @@ router.get('/status', (req, res) => {
         status: 'healthy',
         timestamp: new Date().toISOString(),
         features: {
+          registration: 'available',
           login: 'available',
           logout: 'available',
           tokenValidation: 'available',
           rateLimit: 'active',
-          securityLogging: 'active'
+          securityLogging: 'active',
+          autoLoginAfterRegister: 'active'
         },
         endpoints: {
+          'POST /api/auth/register': 'Registro de usuarios con auto-login',
           'POST /api/auth/login': 'Login con email/password',
           'GET /api/auth/me': 'Información del usuario actual',
           'POST /api/auth/logout': 'Cerrar sesión',
           'GET /api/auth/status': 'Estado del sistema'
         },
         performance: {
+          registrationComplexity: 'O(log n)',
           loginComplexity: 'O(log n)',
           tokenValidation: 'O(1)',
           rateLimitCheck: 'O(1)'

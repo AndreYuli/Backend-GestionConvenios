@@ -224,6 +224,12 @@ class AuthService {
     this.strategies = new Map([
       ['email_password', new EmailPasswordStrategy()]
     ]);
+    
+    // Inicializar servicio de validación de contraseñas
+    this.passwordValidator = new PasswordValidationService({
+      saltRounds: 12,
+      minTimeMs: 100
+    });
   }
 
   /**
@@ -313,6 +319,98 @@ class AuthService {
   }
 
   /**
+   * Buscar usuario por email - Complejidad: O(log n)
+   * @param {string} email - Email del usuario
+   * @returns {Object|null} Usuario encontrado o null
+   */
+  async findUserByEmail(email) {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { email: email.toLowerCase().trim() },
+        select: {
+          id: true,
+          email: true,
+          rol: true,
+          isActive: true,
+          createdAt: true,
+          lastLogin: true
+        }
+      });
+      
+      return user;
+    } catch (error) {
+      console.error('❌ Error buscando usuario por email:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Crear nuevo usuario - Complejidad: O(log n)
+   * @param {Object} userData - Datos del usuario
+   * @returns {Object} Resultado de la creación
+   */
+  async createUser(userData) {
+    try {
+      const { email, password, rol = 'CONSULTOR' } = userData;
+      
+      // Hash de la contraseña usando el mismo servicio de validación
+      const hashResult = await this.passwordValidator.hashPassword(password);
+      
+      if (!hashResult.success) {
+        return {
+          success: false,
+          message: 'Error procesando la contraseña',
+          error: 'PASSWORD_HASH_ERROR'
+        };
+      }
+
+      // Crear usuario en base de datos
+      const newUser = await prisma.user.create({
+        data: {
+          email: email.toLowerCase().trim(),
+          password: hashResult.hash,
+          rol: rol,
+          isActive: true
+        },
+        select: {
+          id: true,
+          email: true,
+          rol: true,
+          isActive: true,
+          createdAt: true,
+          updatedAt: true
+        }
+      });
+
+      console.log(`✅ Usuario creado exitosamente: ${newUser.email} (ID: ${newUser.id})`);
+
+      return {
+        success: true,
+        user: newUser,
+        message: 'Usuario creado exitosamente'
+      };
+
+    } catch (error) {
+      console.error('❌ Error creando usuario:', error);
+
+      // Manejar errores específicos de Prisma
+      if (error.code === 'P2002' && error.meta?.target?.includes('email')) {
+        return {
+          success: false,
+          message: 'El email ya está registrado',
+          error: 'EMAIL_ALREADY_EXISTS'
+        };
+      }
+
+      return {
+        success: false,
+        message: 'Error interno creando usuario',
+        error: 'USER_CREATION_ERROR'
+      };
+    }
+  }
+
+  /**
    * Obtener estrategias disponibles - Complejidad: O(1)
    */
   getAvailableStrategies() {
@@ -325,6 +423,8 @@ class AuthService {
   static getComplexityAnalysis() {
     return {
       login: 'O(log n) - Búsqueda de usuario en BD con índice',
+      userCreation: 'O(log n) - Inserción en BD con índices',
+      userSearch: 'O(log n) - Búsqueda por email indexado',
       tokenCreation: 'O(1) - Creación de JWT',
       tokenValidation: 'O(1) - Verificación de JWT',
       strategySelection: 'O(1) - Map lookup',

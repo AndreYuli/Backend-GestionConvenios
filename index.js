@@ -3,14 +3,36 @@ import express from 'express';
 import cors from 'cors';
 import conveniosRoutes from './src/routes/convenios.routes.js';
 import authRoutes from './src/routes/auth.routes.js';
+import { 
+  createCorsConfig, 
+  corsLogger, 
+  corsErrorHandler, 
+  securityHeaders 
+} from './src/middleware/cors.middleware.js';
 
 // 1. Inicializa el cliente de Prisma
 const prisma = new PrismaClient();
 const app = express();
 
-// Middlewares
+// Middlewares de seguridad
+app.use(securityHeaders);
+app.use(corsLogger);
 app.use(express.json());
-app.use(cors());
+
+// Configuración CORS simple para desarrollo
+app.use(cors({
+  origin: [
+    'http://localhost:5174',  // Tu frontend principal
+    'http://localhost:3000',  // React default
+    'http://localhost:5173',  // Vite default
+    'http://localhost:4200'   // Angular default
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Authorization'],
+  maxAge: 86400
+}));
 
 // 2. Ruta de prueba para verificar que el servidor esté funcionando
 app.get('/', (req, res) => {
@@ -20,6 +42,25 @@ app.get('/', (req, res) => {
 // 3. Rutas de la API
 app.use('/api/convenios', conveniosRoutes);
 app.use('/api/auth', authRoutes);
+
+// Endpoint de prueba para diagnóstico
+app.post('/api/test/register', (req, res) => {
+  console.log('📝 TEST REGISTER - Body recibido:', req.body);
+  console.log('📝 TEST REGISTER - Headers:', req.headers);
+  
+  res.json({
+    success: true,
+    message: 'Endpoint de prueba funcionando',
+    received: req.body,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Importar controlador simplificado
+import { simpleRegister } from './src/controllers/simple-auth.controller.js';
+
+// Ruta de registro simplificada para diagnóstico
+app.post('/api/auth/simple-register', simpleRegister);
 
 // 4. Ruta de prueba para verificar la conexión a la base de datos
 app.get('/health', async (req, res) => {
@@ -45,6 +86,9 @@ app.get('/health', async (req, res) => {
     });
   }
 });
+
+// Middleware de manejo de errores CORS
+app.use(corsErrorHandler);
 
 const PORT = process.env.PORT || 3000;
 
