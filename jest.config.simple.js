@@ -2,17 +2,8 @@ export default {
   testEnvironment: 'node',
   testMatch: ['**/__tests__/**/*.js', '**/*.test.js'],
   
-  // Configuración para ES Modules
+  // Configuración básica
   preset: null,
-  extensionsToTreatAsEsm: ['.js'],
-  globals: {
-    'ts-jest': {
-      useESM: true
-    }
-  },
-  moduleNameMapping: {
-    '^(\.{1,2}/.*)\.js$': '$1'
-  },
   transform: {},
   
   collectCoverageFrom: [
@@ -26,9 +17,6 @@ export default {
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
   
-  // Timeout más alto para tests de integración
-  testTimeout: 30000,
-  
-  // Variables de entorno para tests
-  setupFilesAfterEnv: ['<rootDir>/tests/setup-integration.js']
+  // Timeout para tests
+  testTimeout: 10000
 };

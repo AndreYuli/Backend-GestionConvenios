@@ -17,21 +17,26 @@
     "test:model": "jest tests/convenio.model.working.test.js",
     "test:database": "jest tests/database.working.test.js",
     "test:simple": "jest tests/simple.test.js",
-    "test:all": "jest --testPathPatterns=\"working|simple\""
+    "test:all": "jest --testPathPatterns=\"working|simple\"",
+    "test:filtros": "node --experimental-loader ./tests/esm-loader.js node_modules/.bin/jest tests/filtros.integration.test.js",
+    "test:integration": "node --experimental-loader ./tests/esm-loader.js node_modules/.bin/jest tests/filtros.integration.test.js --verbose"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@prisma/client": "^6.14.0",
-    "express": "^4.18.2",
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
+    "express": "^4.18.2",
     "zod": "^4.1.1"
   },
   "devDependencies": {
+    "@jest/globals": "^30.2.0",
+    "axios": "^1.12.2",
     "jest": "^30.0.5",
     "nodemon": "^3.1.10",
-    "prisma": "^6.14.0"
-    }
+    "prisma": "^6.14.0",
+    "supertest": "^7.1.4"
   }
+}

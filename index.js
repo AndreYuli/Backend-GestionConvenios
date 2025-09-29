@@ -1,18 +1,25 @@
 import { PrismaClient } from '@prisma/client';
 import express from 'express';
+import cors from 'cors';
+import conveniosRoutes from './src/routes/convenios.routes.js';
 
 // 1. Inicializa el cliente de Prisma
 const prisma = new PrismaClient();
 const app = express();
 
+// Middlewares
 app.use(express.json());
+app.use(cors());
 
 // 2. Ruta de prueba para verificar que el servidor esté funcionando
 app.get('/', (req, res) => {
   res.json({ message: 'Servidor de Gestión de Convenios funcionando correctamente' });
 });
 
-// 3. Ruta de prueba para verificar la conexión a la base de datos
+// 3. Rutas de la API
+app.use('/api/convenios', conveniosRoutes);
+
+// 4. Ruta de prueba para verificar la conexión a la base de datos
 app.get('/health', async (req, res) => {
   try {
     // Verifica la conexión a la base de datos
@@ -20,7 +27,13 @@ app.get('/health', async (req, res) => {
     res.json({ 
       status: 'OK', 
       message: 'Conexión a la base de datos exitosa',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      availableEndpoints: {
+        consulta: 'GET /api/convenios - Consultar convenios con filtros',
+        busqueda: 'POST /api/convenios/search - Búsqueda avanzada',
+        estadisticas: 'GET /api/convenios/stats - Estadísticas',
+        individual: 'GET /api/convenios/:id - Convenio por ID'
+      }
     });
   } catch (error) {
     res.status(500).json({ 
