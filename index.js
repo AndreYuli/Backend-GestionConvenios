@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import express from 'express';
 import cors from 'cors';
 import conveniosRoutes from './src/routes/convenios.routes.js';
+import authRoutes from './src/routes/auth.routes.js';
 
 // 1. Inicializa el cliente de Prisma
 const prisma = new PrismaClient();
@@ -18,6 +19,7 @@ app.get('/', (req, res) => {
 
 // 3. Rutas de la API
 app.use('/api/convenios', conveniosRoutes);
+app.use('/api/auth', authRoutes);
 
 // 4. Ruta de prueba para verificar la conexión a la base de datos
 app.get('/health', async (req, res) => {

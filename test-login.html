@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Login - Sistema de Convenios</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+        input[type="email"], input[type="password"], input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        input[type="email"]:focus, input[type="password"]:focus, input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            transition: transform 0.2s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .response {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        .credentials {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .test-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 Test de Login</h1>
+            <p>Sistema de Gestión de Convenios</p>
+        </div>
+
+        <div class="credentials">
+            <h3>👤 Credenciales de Prueba:</h3>
+            <strong>Email:</strong> admin@convenios.com<br>
+            <strong>Password:</strong> admin123
+        </div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="email">📧 Email:</label>
+                <input type="email" id="email" value="admin@convenios.com" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password">🔒 Password:</label>
+                <input type="password" id="password" value="admin123" required>
+            </div>
+
+            <div class="form-group">
+                <label for="serverUrl">🌐 URL del Servidor:</label>
+                <input type="text" id="serverUrl" value="http://localhost:3000" required>
+            </div>
+
+            <div class="test-buttons">
+                <button type="button" class="btn" onclick="testLogin()">🚀 Test Login</button>
+                <button type="button" class="btn" onclick="testInvalidLogin()">❌ Test Login Inválido</button>
+                <button type="button" class="btn" onclick="testValidation()">📝 Test Validación</button>
+                <button type="button" class="btn" onclick="testStatus()">💓 Test Status</button>
+                <button type="button" class="btn" onclick="testMe()">👤 Test /me</button>
+                <button type="button" class="btn" onclick="testLogout()">🚪 Test Logout</button>
+            </div>
+        </form>
+
+        <div id="response" class="response info" style="display: none;">
+            Respuesta aparecerá aquí...
+        </div>
+    </div>
+
+    <script>
+        let currentToken = null;
+
+        function showResponse(data, type = 'info') {
+            const responseDiv = document.getElementById('response');
+            responseDiv.className = `response ${type}`;
+            responseDiv.style.display = 'block';
+            responseDiv.textContent = JSON.stringify(data, null, 2);
+        }
+
+        function showLoading(button) {
+            const loading = document.createElement('span');
+            loading.className = 'loading';
+            button.appendChild(loading);
+            button.disabled = true;
+        }
+
+        function hideLoading() {
+            document.querySelectorAll('.loading').forEach(el => el.remove());
+            document.querySelectorAll('.btn').forEach(btn => btn.disabled = false);
+        }
+
+        async function makeRequest(endpoint, options = {}) {
+            const serverUrl = document.getElementById('serverUrl').value;
+            const url = `${serverUrl}${endpoint}`;
+            
+            const defaultOptions = {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(currentToken && { 'Authorization': `Bearer ${currentToken}` })
+                }
+            };
+
+            try {
+                const response = await fetch(url, { ...defaultOptions, ...options });
+                const data = await response.json();
+                
+                return {
+                    ok: response.ok,
+                    status: response.status,
+                    data: data
+                };
+            } catch (error) {
+                return {
+                    ok: false,
+                    status: 0,
+                    data: { 
+                        success: false, 
+                        message: `Error de conexión: ${error.message}`,
+                        error: 'CONNECTION_ERROR'
+                    }
+                };
+            }
+        }
+
+        async function testLogin() {
+            const button = event.target;
+            showLoading(button);
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            const result = await makeRequest('/api/auth/login', {
+                method: 'POST',
+                body: JSON.stringify({ email, password })
+            });
+
+            hideLoading();
+
+            if (result.ok && result.data.success) {
+                currentToken = result.data.data?.tokens?.accessToken;
+                showResponse({
+                    status: result.status,
+                    message: '✅ Login exitoso!',
+                    user: result.data.data?.user,
+                    tokenLength: currentToken ? currentToken.length : 0,
+                    expiresIn: result.data.data?.tokens?.expiresIn
+                }, 'success');
+            } else {
+                showResponse({
+                    status: result.status,
+                    message: '❌ Login falló',
+                    error: result.data
+                }, 'error');
+            }
+        }
+
+        async function testInvalidLogin() {
+            const button = event.target;
+            showLoading(button);
+
+            const result = await makeRequest('/api/auth/login', {
+                method: 'POST',
+                body: JSON.stringify({ 
+                    email: 'admin@convenios.com', 
+                    password: 'password_incorrecto' 
+                })
+            });
+
+            hideLoading();
+
+            if (result.status === 401) {
+                showResponse({
+                    status: result.status,
+                    message: '✅ Error manejado correctamente',
+                    response: result.data
+                }, 'success');
+            } else {
+                showResponse({
+                    status: result.status,
+                    message: '⚠️ Respuesta inesperada',
+                    response: result.data
+                }, 'error');
+            }
+        }
+
+        async function testValidation() {
+            const button = event.target;
+            showLoading(button);
+
+            const result = await makeRequest('/api/auth/login', {
+                method: 'POST',
+                body: JSON.stringify({ 
+                    email: 'email_invalido',
+                    password: '' 
+                })
+            });
+
+            hideLoading();
+
+            if (result.status === 400) {
+                showResponse({
+                    status: result.status,
+                    message: '✅ Validación funcionando',
+                    errors: result.data.errors
+                }, 'success');
+            } else {
+                showResponse({
+                    status: result.status,
+                    message: '⚠️ Validación inesperada',
+                    response: result.data
+                }, 'error');
+            }
+        }
+
+        async function testStatus() {
+            const button = event.target;
+            showLoading(button);
+
+            const result = await makeRequest('/api/auth/status');
+
+            hideLoading();
+
+            if (result.ok) {
+                showResponse({
+                    status: result.status,
+                    message: '✅ Sistema operativo',
+                    info: result.data.data
+                }, 'success');
+            } else {
+                showResponse({
+                    status: result.status,
+                    message: '❌ Sistema no disponible',
+                    error: result.data
+                }, 'error');
+            }
+        }
+
+        async function testMe() {
+            if (!currentToken) {
+                showResponse({
+                    message: '⚠️ Primero haz login para obtener un token'
+                }, 'error');
+                return;
+            }
+
+            const button = event.target;
+            showLoading(button);
+
+            const result = await makeRequest('/api/auth/me');
+
+            hideLoading();
+
+            if (result.ok) {
+                showResponse({
+                    status: result.status,
+                    message: '✅ Usuario obtenido',
+                    user: result.data.data?.user,
+                    token: result.data.data?.token
+                }, 'success');
+            } else {
+                showResponse({
+                    status: result.status,
+                    message: '❌ Error obteniendo usuario',
+                    error: result.data
+                }, 'error');
+            }
+        }
+
+        async function testLogout() {
+            if (!currentToken) {
+                showResponse({
+                    message: '⚠️ Primero haz login para obtener un token'
+                }, 'error');
+                return;
+            }
+
+            const button = event.target;
+            showLoading(button);
+
+            const result = await makeRequest('/api/auth/logout', {
+                method: 'POST'
+            });
+
+            hideLoading();
+
+            if (result.ok) {
+                currentToken = null;
+                showResponse({
+                    status: result.status,
+                    message: '✅ Logout exitoso',
+                    data: result.data.data
+                }, 'success');
+            } else {
+                showResponse({
+                    status: result.status,
+                    message: '❌ Error en logout',
+                    error: result.data
+                }, 'error');
+            }
+        }
+
+        // Test inicial de status al cargar la página
+        window.addEventListener('load', () => {
+            setTimeout(testStatus, 1000);
+        });
+    </script>
+</body>
+</html>

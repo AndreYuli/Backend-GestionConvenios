@@ -14,6 +14,12 @@ enum EstadoConvenio {
   Archivado
 }
 
+enum RolUsuario {
+  ADMIN
+  GESTOR
+  CONSULTOR
+}
+
 model Convenio {
   id           Int              @id @default(autoincrement())
   nombre       String
@@ -43,4 +49,22 @@ model ConvenioParte {
   parte       Parte    @relation(fields: [parteId], references: [id], onDelete: Cascade)
 
   @@id([convenioId, parteId])
+}
+
+// Modelo User para autenticación - Optimizado para O(log n) en búsquedas
+model User {
+  id        Int         @id @default(autoincrement())
+  email     String      @unique // Índice único para búsquedas O(log n)
+  password  String      // Hash bcrypt para seguridad
+  rol       RolUsuario  @default(CONSULTOR)
+  isActive  Boolean     @default(true)
+  lastLogin DateTime?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  // Índices para optimizar consultas frecuentes
+  @@index([email])
+  @@index([rol])
+  @@index([isActive])
+  @@map("users")
 }
