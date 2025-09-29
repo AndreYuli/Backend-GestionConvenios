@@ -31,7 +31,7 @@ class EmailPasswordStrategy extends AuthStrategy {
     super();
     // Inicializar servicio avanzado de validación de contraseñas
     this.passwordValidator = new PasswordValidationService({
-      saltRounds: 12,
+      saltRounds: parseInt(process.env.BCRYPT_SALT_ROUNDS) || 12,
       minTimeMs: 100 // Protección contra timing attacks
     });
   }
@@ -227,7 +227,7 @@ class AuthService {
     
     // Inicializar servicio de validación de contraseñas
     this.passwordValidator = new PasswordValidationService({
-      saltRounds: 12,
+      saltRounds: parseInt(process.env.BCRYPT_SALT_ROUNDS) || 12,
       minTimeMs: 100
     });
   }
